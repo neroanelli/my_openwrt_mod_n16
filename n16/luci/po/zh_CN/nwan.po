@@ -12,297 +12,297 @@ msgstr "N-WAN"
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:2
 #. N-WAN allows for the use of multiple uplinks for load balancing and failover.
 msgid "nwan_desc"
-msgstr "N-WANÉèÖÃ¿ÉÊ¹¶àÌõÍâÏß½øĞĞµş¼ÓºÍ¸ºÔØÆ½ºâ£¬¸½´øÖ¸¶¨³ö¿Ú¹¦ÄÜ."
+msgstr "N-WANè®¾ç½®å¯ä½¿å¤šæ¡å¤–çº¿è¿›è¡Œå åŠ å’Œè´Ÿè½½å¹³è¡¡ï¼Œé™„å¸¦æŒ‡å®šå‡ºå£åŠŸèƒ½."
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:3
 #. nwan_route_desc
 msgid "nwan_route_desc"
-msgstr "ÉèÖÃN-WANÂ·ÓÉ"
+msgstr "è®¾ç½®N-WANè·¯ç”±"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_enable
 msgid "nwan_enable"
-msgstr "ÊÇ·ñÊ¹ÓÃ"
+msgstr "æ˜¯å¦ä½¿ç”¨"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_on
 msgid "nwan_on"
-msgstr "´ò¿ª"
+msgstr "æ‰“å¼€"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_off
 msgid "nwan_off"
-msgstr "¹Ø±Õ"
+msgstr "å…³é—­"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_ping_ck
 msgid "nwan_ping_ck"
-msgstr "ÊÇ·ñ¿ªÆôPing¼ì²é"
+msgstr "æ˜¯å¦å¼€å¯Pingæ£€æŸ¥"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. force_all_wan_up
 msgid "force_all_wan_up"
-msgstr "ÊÇ·ñÇ¿ÖÆËùÓĞwan¿Ú²¦ºÅ"
+msgstr "æ˜¯å¦å¼ºåˆ¶æ‰€æœ‰wanå£æ‹¨å·"
 
 msgid "force_all_wan_up_desc"
-msgstr "²¢·¢²¦ºÅ¹¦ÄÜ£¬ĞèÒªÏÈ¿ªÆôping¼ì²é£¬¸ù¾İnetworkÅäÖÃµÄwan¿ÚÀ´²¦ºÅ£¬Ö±µ½È«²¿²¦ÉÏ¡£"
+msgstr "å¹¶å‘æ‹¨å·åŠŸèƒ½ï¼Œéœ€è¦å…ˆå¼€å¯pingæ£€æŸ¥ï¼Œæ ¹æ®networké…ç½®çš„wanå£æ¥æ‹¨å·ï¼Œç›´åˆ°å…¨éƒ¨æ‹¨ä¸Šã€‚"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_assingout
 msgid "nwan_assingout"
-msgstr "ÊÇ·ñ¿ªÆôÖ¸¶¨³ö¿Ú"
+msgstr "æ˜¯å¦å¼€å¯æŒ‡å®šå‡ºå£"
 
 msgid "nwan_assingout_desc"
-msgstr "¾ßÌå¹æÔòÔÚÏÂÃæÉèÖÃ"
+msgstr "å…·ä½“è§„åˆ™åœ¨ä¸‹é¢è®¾ç½®"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_debug
 msgid "nwan_debug"
-msgstr "ÊÇ·ñ¿ªÆôÈÕÖ¾¼ÇÂ¼"
+msgstr "æ˜¯å¦å¼€å¯æ—¥å¿—è®°å½•"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_dl_route_table
 msgid "nwan_dl_route_table"
-msgstr "ÊÇ·ñ×Ô¶¯¸üĞÂÂ·ÓÉ±í"
+msgstr "æ˜¯å¦è‡ªåŠ¨æ›´æ–°è·¯ç”±è¡¨"
 
 msgid "nwan_dl_route_table_desc"
-msgstr "µ±¿ªÆôÖÇÄÜÂ·ÓÉÊ±ºò£¬´ò¿ª´Ë¹¦ÄÜ£¬Ã¿ÖÜÒ»×Ô¶¯¸üĞÂ"
+msgstr "å½“å¼€å¯æ™ºèƒ½è·¯ç”±æ—¶å€™ï¼Œæ‰“å¼€æ­¤åŠŸèƒ½ï¼Œæ¯å‘¨ä¸€è‡ªåŠ¨æ›´æ–°"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #.nwan mwanfw desc
 msgid "nwan_mwanfw_desc"
-msgstr "Ö¸¶¨³ö¿Ú£¬¼´£ºÊ¹ÌØ¶¨Ä¿±êµÄÁ÷Á¿×ßÖ¸¶¨ÍâÍøÏßÂ·£¬Ê¹ÓÃÇ°Çë¿ªÆôÖ¸¶¨³ö¿Ú¹¦ÄÜ£¬Ö§³ÖÍâÍøÓòÃûºÍIP¡£"
+msgstr "æŒ‡å®šå‡ºå£ï¼Œå³ï¼šä½¿ç‰¹å®šç›®æ ‡çš„æµé‡èµ°æŒ‡å®šå¤–ç½‘çº¿è·¯ï¼Œä½¿ç”¨å‰è¯·å¼€å¯æŒ‡å®šå‡ºå£åŠŸèƒ½ï¼Œæ”¯æŒå¤–ç½‘åŸŸåå’ŒIPã€‚"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_sleeptime
 msgid "nwan_sleeptime"
-msgstr "Ping¼ä¸ô"
+msgstr "Pingé—´éš”"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_dl_route_table
 msgid "nwan_testip"
-msgstr "Ping²âÊÔÄ¿µÄIP"
+msgstr "Pingæµ‹è¯•ç›®çš„IP"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. WAN Interfaces
 msgid "nwan_interface"
-msgstr "ÍâÍø½Ó¿Ú"
+msgstr "å¤–ç½‘æ¥å£"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_isp_name
 msgid "nwan_isp_name"
-msgstr "ÔËÓªÉÌ"
+msgstr "è¿è¥å•†"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_isp_mobile
 msgid "nwan_isp_mobile"
-msgstr "ÖĞ¹úÒÆ¶¯"
+msgstr "ä¸­å›½ç§»åŠ¨"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_isp_other
 msgid "nwan_isp_other"
-msgstr "ÆäËû"
+msgstr "å…¶ä»–"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_isp_telecom
 msgid "nwan_isp_telecom"
-msgstr "ÖĞ¹úµçĞÅ"
+msgstr "ä¸­å›½ç”µä¿¡"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_isp_unicom
 msgid "nwan_isp_unicom"
-msgstr "ÖĞ¹úÁªÍ¨"
+msgstr "ä¸­å›½è”é€š"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_route_method
 msgid "nwan_route_method"
-msgstr "Â·ÓÉ·½Ê½"
+msgstr "è·¯ç”±æ–¹å¼"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_route_method
 msgid "nwan_route_method"
-msgstr "Â·ÓÉ·½Ê½"
+msgstr "è·¯ç”±æ–¹å¼"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_intelligent_routes
 msgid "nwan_intelligent_routes"
-msgstr "ÖÇÄÜÑ¡Ïß"
+msgstr "æ™ºèƒ½é€‰çº¿"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_balance
 msgid "nwan_balance"
-msgstr "¸ºÔØ¾ùºâ"
+msgstr "è´Ÿè½½å‡è¡¡"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_weight
 msgid "nwan_weight"
-msgstr "Â·ÓÉÈ¨ÖØ"
+msgstr "è·¯ç”±æƒé‡"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_uptime
 msgid "nwan_uptime"
-msgstr "ÒÑÁ¬½ÓÊ±¼ä"
+msgstr "å·²è¿æ¥æ—¶é—´"
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. N-WAN ASSIGN OUT Rules
 msgid "nwan_mwanfw"
-msgstr "N-WAN Ö¸¶¨³ö¿Ú¹æÔòÅäÖÃ"
+msgstr "N-WAN æŒ‡å®šå‡ºå£è§„åˆ™é…ç½®"
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_src
 msgid "nwan_src"
-msgstr "Ô´IPµØÖ·"
+msgstr "æºIPåœ°å€"
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_dst
 msgid "nwan_dst"
-msgstr "Ä¿µÄIPµØÖ·"
+msgstr "ç›®çš„IPåœ°å€"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_proto
 msgid "nwan_proto"
-msgstr "Ğ­ÒéÀàĞÍ"
+msgstr "åè®®ç±»å‹"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_ports
 msgid "nwan_ports"
-msgstr "¶Ë¿Ú"
+msgstr "ç«¯å£"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_proto
 msgid "nwan_proto"
-msgstr "Ğ­ÒéÀàĞÍ"
+msgstr "åè®®ç±»å‹"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:4
 #. nwan_proto
 msgid "nwan_proto"
-msgstr "Ğ­ÒéÀàĞÍ"
+msgstr "åè®®ç±»å‹"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. nwan_wanrule
 msgid "nwan_wanrule"
-msgstr "Ö¸¶¨³ö¿Ú"
+msgstr "æŒ‡å®šå‡ºå£"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. nwan_numset_title
 msgid "nwan_numset_title"
-msgstr "´´½¨N-WAN¿Ú"
+msgstr "åˆ›å»ºN-WANå£"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. nwan_numset_title_dsc
 msgid "nwan_numset_title_desc"
-msgstr "±¾Ò³Ãæ¿ÉÉèÖÃ¶àÏß½ÓÈë£¬µ¥Ïß¶à²¦£¬¶àÏß¶à²¦£¬ÎŞÏß¿ìËÙÇĞ»»APºÍ¿Í»§¶Ë£¬ËùÓĞ¹¦ÄÜÓ¦ÓÃºó×î×Ô¶¯¹Ø±Õ£¬µÚ¶ş´ÎÉèÖÃÇëÖØĞÂ¿ªÆô£¬ÏàÓ¦µÄ¹¦ÄÜ"
+msgstr "æœ¬é¡µé¢å¯è®¾ç½®å¤šçº¿æ¥å…¥ï¼Œå•çº¿å¤šæ‹¨ï¼Œå¤šçº¿å¤šæ‹¨ï¼Œæ— çº¿å¿«é€Ÿåˆ‡æ¢APå’Œå®¢æˆ·ç«¯ï¼Œæ‰€æœ‰åŠŸèƒ½åº”ç”¨åæœ€è‡ªåŠ¨å…³é—­ï¼Œç¬¬äºŒæ¬¡è®¾ç½®è¯·é‡æ–°å¼€å¯ï¼Œç›¸åº”çš„åŠŸèƒ½"
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. nwan_numset_desc
 msgid "nwan_numset_desc"
-msgstr "±¾Ò³ÉèÖÃÍ¨¹ımacvlanµÄ·½·¨£¬¿É´Ówan¿ÚĞéÄâ³ö¶à¸öWAN¿Ú£¬´Ó¶øÊµÏÖµ¥Ïß¶à²¦,¶àÏß¶à²¦£¬±£´æÓ¦ÓÃºó£¬È»ºóÇëµ½ÍøÂç--¡·½Ó¿ÚÏÂ²é¿´¡¢ÉèÖÃĞéÄâWAN¿ÚµÄ¾ßÌå²ÎÊı¡£×¢Òâ£ºµ±ÄúÏëÉ¾³ıÖ®Ç°×öµÄËùÓĞĞéÄâwan¿ÚÉèÖÃ£¬ÄÇÃ´ÇëÉèÖÃĞéÄâwan¿ÚµÄÊıÄ¿Îª0£¬È»ºó±£´æÓ¦ÓÃ£¬È»ºóÖØÆôÉè±¸¡£"
+msgstr "æœ¬é¡µè®¾ç½®é€šè¿‡macvlançš„æ–¹æ³•ï¼Œå¯ä»wanå£è™šæ‹Ÿå‡ºå¤šä¸ªWANå£ï¼Œä»è€Œå®ç°å•çº¿å¤šæ‹¨,å¤šçº¿å¤šæ‹¨ï¼Œä¿å­˜åº”ç”¨åï¼Œç„¶åè¯·åˆ°ç½‘ç»œ--ã€‹æ¥å£ä¸‹æŸ¥çœ‹ã€è®¾ç½®è™šæ‹ŸWANå£çš„å…·ä½“å‚æ•°ã€‚æ³¨æ„ï¼šå½“æ‚¨æƒ³åˆ é™¤ä¹‹å‰åšçš„æ‰€æœ‰è™šæ‹Ÿwanå£è®¾ç½®ï¼Œé‚£ä¹ˆè¯·è®¾ç½®è™šæ‹Ÿwanå£çš„æ•°ç›®ä¸º0ï¼Œç„¶åä¿å­˜åº”ç”¨ï¼Œç„¶åé‡å¯è®¾å¤‡ã€‚"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. nwan_macvlan_numset
 msgid "nwan_macvlan_numset"
-msgstr "´´½¨N-wan¿ÚÉú³ÉÉèÖÃ"
+msgstr "åˆ›å»ºN-wanå£ç”Ÿæˆè®¾ç½®"
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. virtual_wan_macvlan
 msgid "virtual_wan_macvlan"
-msgstr "Ê¹ÓÃmacvlanÉú³ÉĞéÄâwan¿Ú"
+msgstr "ä½¿ç”¨macvlanç”Ÿæˆè™šæ‹Ÿwanå£"
 
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. nwan_macvlan_num
 msgid "nwan_macvlan_num"
-msgstr "ĞéÄâwan¿ÚÊıÄ¿"
+msgstr "è™šæ‹Ÿwanå£æ•°ç›®"
 
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. nwan_macvlan_num_desc
 msgid "nwan_macvlan_num_desc"
-msgstr "ÔÚ´Ë½Ó¿ÚÉÏĞèÒª¼¸²¦¾ÍÌî¼¸£¬ÀıÈç5²¦ÉèÖÃ5¡£»¹Ô­µ¥²¦ÌîĞ´1"
+msgstr "åœ¨æ­¤æ¥å£ä¸Šéœ€è¦å‡ æ‹¨å°±å¡«å‡ ï¼Œä¾‹å¦‚5æ‹¨è®¾ç½®5ã€‚è¿˜åŸå•æ‹¨å¡«å†™1"
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. nwan_enable_macvlan
 msgid "nwan_enable_macvlan"
-msgstr "¿ªÆô"
+msgstr "å¼€å¯"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. menu_set_macvlan
 msgid "menu_set_macvlan"
-msgstr "´´½¨WAN"
+msgstr "åˆ›å»ºWAN"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. wan_start_idx
 msgid "wan_start_idx"
-msgstr "´ÓÄÄ¸öWAN½Ó¿Ú Éú³ÉĞéÄâwan "
+msgstr "ä»å“ªä¸ªWANæ¥å£ ç”Ÿæˆè™šæ‹Ÿwan "
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. wan_start_idx_desc
 msgid "wan_start_idx_desc"
-msgstr "wan¼´Ô­À´µÄwan¿ÚĞéÄâ£¬Ê¹ÓÃwan100µÈÏÈ¿ªÆô¶àÏßµÄÅäÖÃ£¬Éú³ÉÏàÓ¦µÄÏßÊıÁ¿£¬wan100ÎªµÚ¶şÌõÏßµÄ½Ó¿Ú£¬wan200ÎªµÚÈıÌõÏßµÄ½Ó¿Ú£¬wan300ÎªµÚËÄÌõÏßµÄ½Ó¿Ú"
+msgstr "wanå³åŸæ¥çš„wanå£è™šæ‹Ÿï¼Œä½¿ç”¨wan100ç­‰å…ˆå¼€å¯å¤šçº¿çš„é…ç½®ï¼Œç”Ÿæˆç›¸åº”çš„çº¿æ•°é‡ï¼Œwan100ä¸ºç¬¬äºŒæ¡çº¿çš„æ¥å£ï¼Œwan200ä¸ºç¬¬ä¸‰æ¡çº¿çš„æ¥å£ï¼Œwan300ä¸ºç¬¬å››æ¡çº¿çš„æ¥å£"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. switch_numset
 msgid "switch_numset"
-msgstr "¶àÏß½ÓÈëµÄÅäÖÃ"
+msgstr "å¤šçº¿æ¥å…¥çš„é…ç½®"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. switch_numset
 msgid "switch_numset_desc"
-msgstr "ÉèÖÃ½ÓÈëÏßµÄÊıÁ¿£¬ÊÊÓÃÓÚ¶àÏß½ÓÈëµÄÅäÖÃ£¬Ä¬ÈÏÉèÖÃµ¥Ïß½ÓÈë£¬±ØĞëÕıÈ·ÉèÖÃÂ·ÓÉĞÍºÅ£¬¸Ã¹¦ÄÜ»¹²»ÊÇºÜÍêÉÆ£¬ĞÂÊÖÉ÷ÓÃ£¬¿ÉÄÜ»áµ¼ÖÂÂ·ÓÉÎŞ·¨Õı³£Æô¶¯£¬Ö»ÄÜË¢»ú£¬»òÕßttlĞŞ¸ÄÏàÓ¦µÄÅäÖÃ£¬µÚ¶şÌõÏß½ÓÈëµÄÎ»ÖÃ¿ÉÄÜÔÚwan¿Ú±ßÉÏ£¬Ò²¿ÉÄÜ×îÔ¶Àëwan¿ÚµÄ£¬71xx wan100ÊÇlan4 wan200ÊÇlan3¡£¡£¡£¡£"
+msgstr "è®¾ç½®æ¥å…¥çº¿çš„æ•°é‡ï¼Œé€‚ç”¨äºå¤šçº¿æ¥å…¥çš„é…ç½®ï¼Œé»˜è®¤è®¾ç½®å•çº¿æ¥å…¥ï¼Œå¿…é¡»æ­£ç¡®è®¾ç½®è·¯ç”±å‹å·ï¼Œè¯¥åŠŸèƒ½è¿˜ä¸æ˜¯å¾ˆå®Œå–„ï¼Œæ–°æ‰‹æ…ç”¨ï¼Œå¯èƒ½ä¼šå¯¼è‡´è·¯ç”±æ— æ³•æ­£å¸¸å¯åŠ¨ï¼Œåªèƒ½åˆ·æœºï¼Œæˆ–è€…ttlä¿®æ”¹ç›¸åº”çš„é…ç½®ï¼Œç¬¬äºŒæ¡çº¿æ¥å…¥çš„ä½ç½®å¯èƒ½åœ¨wanå£è¾¹ä¸Šï¼Œä¹Ÿå¯èƒ½æœ€è¿œç¦»wanå£çš„ï¼Œ71xx wan100æ˜¯lan4 wan200æ˜¯lan3ã€‚ã€‚ã€‚ã€‚"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. switch_enable
 msgid "switch_enable"
-msgstr "¿ªÆô¶àÏß½ÓÈëÅäÖÃ"
+msgstr "å¼€å¯å¤šçº¿æ¥å…¥é…ç½®"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. route_modle
 msgid "route_modle"
-msgstr "Ñ¡ÔñÄãµÄÂ·ÓÉĞÍºÅ"
+msgstr "é€‰æ‹©ä½ çš„è·¯ç”±å‹å·"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. route_modle_desc
 msgid "route_modle_desc"
-msgstr "ÏÖÓĞµÄĞÍºÅ ÓĞrg100a Ö§³Öµ½Ë«Ïß£¬db120Ö§³Öµ½Ë«Ïß £¬bcm 47xxÏµÁĞ£¬Èç£ºh618b 7231-4pµÈ×î´óÖ§³Öµ½4Ïß £¬ar 71xxÈç941N v2 841N V3 ×î´óÖ§³Öµ½4Ïß £¬ÆäËüĞÍºÅ¹¦ÄÜÍêÉÆÖĞ"
+msgstr "ç°æœ‰çš„å‹å· æœ‰rg100a æ”¯æŒåˆ°åŒçº¿ï¼Œdb120æ”¯æŒåˆ°åŒçº¿ ï¼Œbcm 47xxç³»åˆ—ï¼Œå¦‚ï¼šh618b 7231-4pç­‰æœ€å¤§æ”¯æŒåˆ°4çº¿ ï¼Œar 71xxå¦‚941N v2 841N V3 æœ€å¤§æ”¯æŒåˆ°4çº¿ ï¼Œå…¶å®ƒå‹å·åŠŸèƒ½å®Œå–„ä¸­"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. line_num
 msgid "line_num"
-msgstr "½ÓÈëÏßÂ·ÊıÁ¿"
+msgstr "æ¥å…¥çº¿è·¯æ•°é‡"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. line_num_desc
 msgid "line_num_desc"
-msgstr "½ÓÈëÏßÂ·ÊıÁ¿²»ĞèÒª¶àÏßÊ±£¬Ñ¡Ôñ1£¬²¢¿ªÆô¶àÏßÅäÖÃºó £¬±£´æÓ¦ÓÃ"
+msgstr "æ¥å…¥çº¿è·¯æ•°é‡ä¸éœ€è¦å¤šçº¿æ—¶ï¼Œé€‰æ‹©1ï¼Œå¹¶å¼€å¯å¤šçº¿é…ç½®å ï¼Œä¿å­˜åº”ç”¨"
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. wireless_sat
 msgid "wireless_sat"
-msgstr "ÎŞÏß¿Í»§¶ËÉèÖÃ"
+msgstr "æ— çº¿å®¢æˆ·ç«¯è®¾ç½®"
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. wireless_sat_desc
 msgid "wireless_sat_desc"
-msgstr "Í¨¹ı¼òµ¥µÄÉèÖÃ£¬¿ªÆô¿ìËÙÅäÖÃÎŞÏß¿Í»§¶ËÄ£Ê½£¬½øĞĞ²äÍø¡£Ä¬ÈÏÄÚÖÃÍø¿¨ wan½Ó¿ÚÎªwan500£¬usbÍø¿¨Ö§³Ö²»ÊÇºÜºÃ"
+msgstr "é€šè¿‡ç®€å•çš„è®¾ç½®ï¼Œå¼€å¯å¿«é€Ÿé…ç½®æ— çº¿å®¢æˆ·ç«¯æ¨¡å¼ï¼Œè¿›è¡Œè¹­ç½‘ã€‚é»˜è®¤å†…ç½®ç½‘å¡ wanæ¥å£ä¸ºwan500ï¼Œusbç½‘å¡æ”¯æŒä¸æ˜¯å¾ˆå¥½"
 
 
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. wireles_enable
 msgid "wireles_enable"
-msgstr "¿ªÆô¿ìËÙÅäÖÃÎŞÏß¹¦ÄÜ"
+msgstr "å¼€å¯å¿«é€Ÿé…ç½®æ— çº¿åŠŸèƒ½"
 
 #: /tmp/i18n/luasrc/i18n/nwan.en.lua:26
 #. mode_desc
 msgid "mode_desc"
-msgstr "Client ¿Í»§¶Ë²äÍøÄ£Ê½£¬Access Point »Ö¸´APÄ£Ê½"
+msgstr "Client å®¢æˆ·ç«¯è¹­ç½‘æ¨¡å¼ï¼ŒAccess Point æ¢å¤APæ¨¡å¼"
