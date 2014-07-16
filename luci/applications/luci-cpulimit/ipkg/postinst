@@ -1,6 +1,0 @@
-#!/bin/sh
-[ -n "" ] || {
-	( . /etc/uci-defaults/luci-app-cpulimit ) && rm -f /etc/uci-defaults/luci-app-cpulimit
-	/etc/init.d/cpulimit enable
-	exit 0
-}

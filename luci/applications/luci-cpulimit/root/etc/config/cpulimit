@@ -1,6 +1,0 @@
-
-config 'list'
-	option 'exename' 'transmission-daemon'
-	option 'limit' '50'
-	option 'enabled' '0'
-
