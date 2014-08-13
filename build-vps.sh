@@ -65,6 +65,7 @@ make defconfig
 make prereq
 
 cp ../n16/config.40820 ./.config
+cp ../n16/config.x86 ./.config
 
 #make menuconfig
 #make V=99 2>&1 |tee build.log
