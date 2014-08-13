@@ -35,7 +35,7 @@ cp -rf ./patch/uClibc/*.* ./$TOP_DIR/toolchain/uClibc/patches-0.9.33.2
 cp -rf ./patch/busybox/*.* ./$TOP_DIR/package/utils/busybox/patches
 #cp -rf ./patch/openconnect/*.* ./$TOP_DIR/feeds/packages/net/openconnect/patches
 #package
-cp -rf ./package/base-files/etc/sysupgrade.conf ./trunk/package/base-files/files/etc/
+cp -rf ./package/base-files/etc/sysupgrade.conf ./$TOP_DIR/package/base-files/files/etc/
 cp -rf ./package/base-files/etc/profile ./$TOP_DIR/package/base-files/files/etc/
 cp -rf ./package/base-files/etc/ipset ./$TOP_DIR/package/base-files/files/etc/
 cp -rf ./package/base-files/etc/config/wireless ./$TOP_DIR/package/base-files/files/etc/config/
