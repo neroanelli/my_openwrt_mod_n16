@@ -1,5 +1,5 @@
 TOP_DIR="barrier_breaker"
-#apt-get install g++ libncurses5-dev zlib1g-dev bison flex unzip autoconf gawk make gettext gettext texinfo sharutils gcc binutils ncurses-term patch bzip2 libbz2-dev libz-dev asciidoc subversion sphinxsearch libtool git git-core curl
+#sudo apt-get install gcc g++ binutils patch bzip2 flex bison make autoconf gettext texinfo unzip sharutils subversion libncurses5-dev ncurses-term zlib1g-dev git git-core gawk libz-dev asciidoc bin86 cvs bzr mercurial sdcc libxml-parser-perl gengetopt gcc-multilib curl -y
 #############################
 ## get the latest source code 
 #############################
@@ -29,7 +29,7 @@ cp -rf ./n16/opkg.conf ./$TOP_DIR/package/system/opkg/files/
 #############################
 ##RA MOD
 mkdir ./$TOP_DIR/feeds/packages/net/aria2/patches
-mkdir ./$TOP_DIR/feeds/packages/net/openconnect/patches
+#mkdir ./$TOP_DIR/feeds/packages/net/openconnect/patches
 cp -rf ./patch/aria2/*.* ./$TOP_DIR/feeds/packages/net/aria2/patches
 cp -rf ./patch/uClibc/*.* ./$TOP_DIR/toolchain/uClibc/patches-0.9.33.2
 cp -rf ./patch/busybox/*.* ./$TOP_DIR/package/utils/busybox/patches
@@ -64,7 +64,7 @@ cd $TOP_DIR
 make defconfig
 make prereq
 
-cp ../n16/config.40820 ./.config
+#cp ../n16/config.40820 ./.config
 cp ../n16/config.x86 ./.config
 
 #make menuconfig

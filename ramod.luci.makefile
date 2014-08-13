@@ -1,3 +1,4 @@
+/feeds/ramod/luci/contrib/package/luci/
 include $(TOPDIR)/rules.mk
 
 LUCI_TOPDIR=../../..
