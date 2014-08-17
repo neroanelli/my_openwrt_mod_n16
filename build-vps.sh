@@ -19,7 +19,9 @@ echo "src-git ramod git://github.com/ravageralpha/my_openwrt_mod.git" >> ./$TOP_
 ./$TOP_DIR/scripts/feeds install -a
 
 #cp -rf ./n16/opkg.conf ./$TOP_DIR/package/system/opkg/files/
-cp -rf ./n16/opkg.conf ./$TOP_DIR/package/system/opkg/files/
+
+#cp -rf ./n16/opkg.conf ./$TOP_DIR/package/system/opkg/files/
+
 ############################
 ##change trx_max_len
 # if grep -q "0xD00000" ./$TOP_DIR/tools/firmware-utils/src/trx.c
