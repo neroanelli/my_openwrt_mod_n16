@@ -20,6 +20,7 @@ echo "src-git ramod git://github.com/ravageralpha/my_openwrt_mod.git" >> ./$TOP_
 
 ###编译N16时需要修改的文件
 #cp -rf ./n16/opkg.conf ./$TOP_DIR/package/system/opkg/files/
+
 ############################
 ##change trx_max_len
 # if grep -q "0xD00000" ./$TOP_DIR/tools/firmware-utils/src/trx.c
