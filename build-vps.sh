@@ -18,27 +18,25 @@ echo "src-git ramod git://github.com/ravageralpha/my_openwrt_mod.git" >> ./$TOP_
 ./$TOP_DIR/scripts/feeds update -a
 ./$TOP_DIR/scripts/feeds install -a
 
+###编译N16时需要修改的文件
 #cp -rf ./n16/opkg.conf ./$TOP_DIR/package/system/opkg/files/
-cp -rf ./n16/opkg.conf ./$TOP_DIR/package/system/opkg/files/
 ############################
 ##change trx_max_len
 # if grep -q "0xD00000" ./$TOP_DIR/tools/firmware-utils/src/trx.c
 #############################
-
+#cp -rf ./package/base-files/etc/config/wireless ./$TOP_DIR/package/base-files/files/etc/config/
 
 #############################
 ##RA MOD
 mkdir ./$TOP_DIR/feeds/packages/net/aria2/patches
-#mkdir ./$TOP_DIR/feeds/packages/net/openconnect/patches
 cp -rf ./patch/aria2/*.* ./$TOP_DIR/feeds/packages/net/aria2/patches
 cp -rf ./patch/uClibc/*.* ./$TOP_DIR/toolchain/uClibc/patches-0.9.33.2
 cp -rf ./patch/busybox/*.* ./$TOP_DIR/package/utils/busybox/patches
-#cp -rf ./patch/openconnect/*.* ./$TOP_DIR/feeds/packages/net/openconnect/patches
+
 #package
 cp -rf ./package/base-files/etc/sysupgrade.conf ./$TOP_DIR/package/base-files/files/etc/
 cp -rf ./package/base-files/etc/profile ./$TOP_DIR/package/base-files/files/etc/
 cp -rf ./package/base-files/etc/ipset ./$TOP_DIR/package/base-files/files/etc/
-cp -rf ./package/base-files/etc/config/wireless ./$TOP_DIR/package/base-files/files/etc/config/
 cp -rf ./package/base-files/etc/hotplug.d ./$TOP_DIR/package/base-files/files/etc/
 cp -rf ./package/dnsmasq/*.* ./$TOP_DIR/package/network/services/dnsmasq/files/
 cp -rf ./package/cpulimit-ng ./$TOP_DIR/package/
