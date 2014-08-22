@@ -70,3 +70,6 @@ cp ../n16/config.x86 ./.config
 #make V=99 2>&1 |tee build.log
 #make V=99 2>&1 |tee build.log |grep -i error   
 #tar -cvf ~/trunk/bin.tar ~/trunk/bin
+#cd bin
+#tar -zcvf package.tar.gz package/
+#python ~/bypy/bypy.py -v syncup ./ /x86

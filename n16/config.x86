@@ -3037,7 +3037,7 @@ CONFIG_PACKAGE_luci-app-p910nd=m
 # CONFIG_PACKAGE_luci-app-pbx is not set
 CONFIG_PACKAGE_luci-app-polipo=m
 CONFIG_PACKAGE_luci-app-qos=m
-CONFIG_PACKAGE_luci-app-radvd=m
+CONFIG_PACKAGE_luci-app-radvd=y
 CONFIG_PACKAGE_luci-app-redsocks2=y
 CONFIG_PACKAGE_luci-app-samba=y
 CONFIG_PACKAGE_luci-app-shadowsocks=y
