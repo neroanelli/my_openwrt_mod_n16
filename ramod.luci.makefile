@@ -21,6 +21,9 @@ $(eval $(call application,nwan,nwan configuration module,\
 	
 $(eval $(call application,vpnc,LuCI GUI to the VPNC program,\
 	+PACKAGE_luci-vpnc:vpnc))
+	
+$(eval $(call application,pptpd,LuCI GUI to the pptpd program,\
+	+PACKAGE_luci-pptpd:pptpd))
 
 ### Server Gateway Interfaces ###
 define sgi

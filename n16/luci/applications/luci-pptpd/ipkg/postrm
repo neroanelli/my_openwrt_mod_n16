@@ -1,0 +1,6 @@
+#!/bin/sh
+
+[ -n "" ] || {
+	mv /etc/ppp/init.d_pptpd /etc/init.d/pptpd
+	exit 0
+}
