@@ -1,12 +1,11 @@
 /feeds/ramod/luci/contrib/package/luci/
 
-
 	
 $(eval $(call application,dnsfilter,DNS-Filter LuCI configuration module,\
 	+PACKAGE_luci-app-dnsfilter:libc \
 	+PACKAGE_luci-app-dnsfilter:bash \
 	+PACKAGE_luci-app-dnsfilter:screen \
-	+PACKAGE_luci-dnsfilter:wget))
+	+PACKAGE_luci-app-dnsfilter:wget))
 
 $(eval $(call application,cpulimit,cpulimit-ng LuCI configuration module,\
 	+PACKAGE_luci-cpulimit:cpulimit-ng))
@@ -20,10 +19,10 @@ $(eval $(call application,nwan,nwan configuration module,\
 	+PACKAGE_luci-app-nwan:iptables-mod-ipopt))
 	
 $(eval $(call application,vpnc,LuCI GUI to the VPNC program,\
-	+PACKAGE_luci-vpnc:vpnc))
+	+PACKAGE_luci-app-vpnc:vpnc))
 	
 $(eval $(call application,pptpd,LuCI GUI to the pptpd program,\
-	+PACKAGE_luci-pptpd:pptpd))
+	+PACKAGE_luci-app-pptpd:pptpd))
 
 ### Server Gateway Interfaces ###
 define sgi
