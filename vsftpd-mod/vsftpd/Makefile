@@ -46,7 +46,7 @@ define Package/vsftpd-pam
 $(call Package/vsftpd/Default)
   VARIANT:=pam
   TITLE+= (PAM)
-  DEPENDS+=+libopenssl +libpam-db +db47-util
+  DEPENDS+=+libopenssl +libpam +db47-util
 endef
 
 define Package/vsftpd/conffiles

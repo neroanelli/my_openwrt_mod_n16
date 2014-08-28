@@ -1,5 +1,7 @@
 /feeds/ramod/luci/contrib/package/luci/
 
+$(eval $(call application,vsftpd,FTP Server,\
+	+PACKAGE_luci-app-vsftpd:vsftpd-pam))
 	
 $(eval $(call application,dnsfilter,DNS-Filter LuCI configuration module,\
 	+PACKAGE_luci-app-dnsfilter:libc \
