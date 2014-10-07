@@ -13,7 +13,7 @@ read -n 1
 
 #######Comment luci line
 echo "src-git exopenwrt https://github.com/black-roland/exOpenWrt.git" >> ./$TOP_DIR/feeds.conf.default
-echo "src-git mwan git://github.com/Adze1502/mwan.git" >> ./$TOP_DIR/feeds.conf.default
+#echo "src-git mwan git://github.com/Adze1502/mwan.git" >> ./$TOP_DIR/feeds.conf.default
 echo "src-git ramod git://github.com/ravageralpha/my_openwrt_mod.git" >> ./$TOP_DIR/feeds.conf.default
 ./$TOP_DIR/scripts/feeds update -a
 ./$TOP_DIR/scripts/feeds install -a
