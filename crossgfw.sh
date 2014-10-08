@@ -6,7 +6,7 @@
 git clone https://github.com/clowwindy/ChinaDNS-C.git
 cd ChinaDNS-C
 ./autogen.sh 
-configure && make
+./configure && make
 sudo nohup ./src/chinadns -l iplist.txt -c chnroute.txt &
 cd ..
 
