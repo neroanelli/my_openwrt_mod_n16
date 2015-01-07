@@ -2,6 +2,8 @@
 
 $(eval $(call application,vsftpd,FTP Server,\
 	+PACKAGE_luci-app-vsftpd:vsftpd-pam))
+$(eval $(call application,pdnsd,LuCI Support for pdnsd,\
+	+PACKAGE_luci-app-pdnsd:pdnsd))
 	
 $(eval $(call application,dnsfilter,DNS-Filter LuCI configuration module,\
 	+PACKAGE_luci-app-dnsfilter:libc \
