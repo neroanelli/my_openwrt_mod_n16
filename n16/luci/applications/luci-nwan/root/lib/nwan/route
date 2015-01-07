@@ -55,8 +55,10 @@ make_wan_list() {
 		num=`echo $ifc | tr -d "wan"`
 	fi
 	if [ -z $num ] ; then num=0; fi  
-	mark=$((($num+1)*10))  
-	if [ "$proto" = "pptp" ]||[ "$proto" = "l2tp" ]; then mark=8; fi  # by neroanelli
+	mark=$((($num+1)*10)) 
+	if [ "$proto" = "pptp" ]||[ "$proto" = "l2tp" ]||[ "$proto" = "xl2tp" ]||[ "$proto" = "openl2tp" ]; then proto="vpn"; fi
+	
+	if [ "$proto" = "vpn" ]; then mark=8; fi  # by neroanelli
 	[ -z "$weight" ]&& weight=1
 	[ -z "$route" ]&& route=balance
 }
@@ -125,7 +127,7 @@ add_default_route()
 
 		make_wan_list
 
-		if [ ! "$proto" = "pptp" ]&&[ ! "$proto" = "l2tp" ]; then
+		if [ ! "$proto" = "vpn" ]; then
 			if [ ! "$proto" = "pppoe" ]; then
 				parameter=$gateway
 			else
@@ -236,7 +238,7 @@ do
 ### add ip route to table
 ###############
 
-	if [ ! "$proto" = "pptp" ]&&[ ! "$proto" = "l2tp" ]; then
+	if [ ! "$proto" = "vpn" ]; then
 	    ip route flush table ${ifc}_rt
 	    ip route | grep -v -E "nexthop|default" | while read ROUTE 
 		do 
@@ -252,7 +254,6 @@ do
 		local NET=$(echo $RUN | cut -d " " -f1)
 		local DEV=$(echo $RUN | cut -d " " -f3)
 		ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
-
 	fi
 
 ###############
@@ -264,14 +265,14 @@ do
 	ip route del table ${ifc}_rt default 
 	ip route del table ${ifc}_rt default 
 
-	[ ! "$proto" = "pppoe" ]&&[ ! "$proto" = "pptp" ]&&[ ! "$proto" = "l2tp" ]&&ip route add default via $gateway dev $device table ${ifc}_rt
-	[ "$proto" = "pppoe" ]||[ "$proto" = "pptp" ]||[ "$proto" = "l2tp" ]&&ip route add default via $ipaddr dev $device table ${ifc}_rt
+	[ ! "$proto" = "pppoe" ]&&[ ! "$proto" = "vpn" ]&&ip route add default via $gateway dev $device table ${ifc}_rt
+	[ "$proto" = "pppoe" ]||[ "$proto" = "vpn" ]&&ip route add default via $ipaddr dev $device table ${ifc}_rt
 	#[ "$proto" = "pptp" ]&&ip route add default dev $device table ${ifc}_rt
 
 ###############
 #echo Set PREROUTING?-?±
 ###############
-	if [ ! "$proto" = "pptp" ]&&[ ! "$proto" = "l2tp" ]; 
+	if [ ! "$proto" = "vpn" ]; 
 		then
 			#?ùóDwan??è?μ?°ü(NEW)??±ê???a mark,×?Wan 2????·óé
 			#local RUN="iptables -t mangle -A NWANPRE -i $device -m conntrack  --ctstate NEW  -j CONNMARK --set-mark $mark"
@@ -337,7 +338,7 @@ remove_wan () {
 	ifc=$INTERFACE
 
 	make_wan_list
-	if [ ! "$proto" = "pptp" ] && [ ! "$proto" = "l2tp" ];
+	if [ ! "$proto" = "vpn" ];
 		then
 		#mark=`printf "%x" $mark`
 		local RUN="iptables -t mangle -D NWANPRE -i $device -m state --state NEW -j CONNMARK --set-mark $mark"
