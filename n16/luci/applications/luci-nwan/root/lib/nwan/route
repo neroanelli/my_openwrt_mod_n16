@@ -55,7 +55,7 @@ make_wan_list() {
 		num=`echo $ifc | tr -d "wan"`
 	fi
 	if [ -z $num ] ; then num=0; fi  
-	mark=$((($num+1)*10)) 
+	mark=$((($num+1)*10))  
 	if [ "$proto" = "pptp" ]||[ "$proto" = "l2tp" ]||[ "$proto" = "xl2tp" ]||[ "$proto" = "openl2tp" ]; then proto="vpn"; fi
 	
 	if [ "$proto" = "vpn" ]; then mark=8; fi  # by neroanelli
@@ -86,7 +86,7 @@ set_rtTables () {
 	#	log_debug 5 "set_rt_Tables:$n $RT"
 		n=`expr $n + 1`
 	fi
-	eval ${1}_RT_TABLE=$RT
+	#eval ${1}_RT_TABLE=$RT
 	# log_debug 5 "set_rt_Tables:${1}_RT_TABLE=$RT.....OK"
 }
 
@@ -160,7 +160,6 @@ kill_nwan_ping  > /dev/null  2>&1
 kill_nwan_ping  > /dev/null  2>&1
 
 ###Commented by neroanelli---nwam start
-
 if [ -z $1]; 
 	then
 		ip rule flush 
@@ -180,9 +179,6 @@ fi
 default_route=$NULL 
 
 ip_ru_del_0
-
-
-
 
 
 ###Commented by neroanelli
@@ -254,6 +250,13 @@ do
 		local NET=$(echo $RUN | cut -d " " -f1)
 		local DEV=$(echo $RUN | cut -d " " -f3)
 		ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
+		
+		#########important!!!! only work on this machine.只是在DE2700上使用，因为使用了内网的网关。
+		#local RUN=`ip route | grep 10.24.0.2`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
+		#local NET=$(echo $RUN | cut -d " " -f1)
+		#local DEV=$(echo $RUN | cut -d " " -f3)
+		#ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
+
 	fi
 
 ###############
@@ -322,21 +325,21 @@ add_default_route
 }
 
 
-remove_wan () {
+remove_wan() {
 
 	# INTERFACE = ${INTERFACE} wan_NO 
+	echo ---------------------------------- >> $logpath
 	echo -------------start---------------- >> $logpath
+	echo ---------------------------------- >> $logpath
 	local RUN="ip route flush table ${INTERFACE}_rt"
 	eval "$RUN> /dev/null"
-		
-	ip rule | grep ${INTERFACE} | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule # delete all the specified ip rules
+	ip rule | grep -w "${INTERFACE}_rt" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule # delete all the specified ip rules
 	do 
 		$del_rule
 	done
 	## del iptables 
 	#iptables -t mangle -A NWANPRE -i pppoe-wan -m state --state NEW -j CONNMARK --set-mark 10
 	ifc=$INTERFACE
-
 	make_wan_list
 	if [ ! "$proto" = "vpn" ];
 		then
@@ -357,10 +360,12 @@ remove_wan () {
 		# iptables -t mangle -D PREROUTING -m set --match-set vpn dst -j MARK --set-mark $mark
 	fi
 
-	
 
 	ip route flush cache
+
+	echo ---------------------------------- >> $logpath
 	echo -------------end------------------ >> $logpath
+	echo ---------------------------------- >> $logpath
 	#add_default_route
 }
 
@@ -368,13 +373,17 @@ remove_wan () {
 
 
 route_start(){
+	echo ---------------------------------- >> $logpath
 	echo -------------start---------------- >> $logpath
+	echo ---------------------------------- >> $logpath
 	local WAN_LIST=$1
 	main_int $WAN_LIST
 	sh /lib/nwan/assingout
 	ip route flush cache  
 	ip route flush cache  
+	echo ---------------------------------- >> $logpath
 	echo -------------end------------------ >> $logpath
+	echo ---------------------------------- >> $logpath
 }
 
 
