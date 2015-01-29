@@ -278,7 +278,8 @@ do
 					#ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
 				fi
 			else
-				if [ ! "$i" = "vpn2" ]; then
+				iproto=$(uci_get network.${i}.proto) 
+				if [ ! "$iproto" = "vpn" ]; then
 					ip route | grep -v -E "nexthop|default" | grep -w ${ifc} | while read ROUTE
 					do
 						local RUN="ip route append table ${i}_rt to $ROUTE"
