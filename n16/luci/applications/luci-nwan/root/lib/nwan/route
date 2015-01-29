@@ -1,14 +1,30 @@
 #!/bin/sh
 # load-balance(N-WAN) Script VER 1.1d 2011.1.6 for openwrt  by QQ GROUP 120752328
 
-echo $$ > /tmp/nwan/nwanroute_new.pid
-kill -9 `cat /tmp/nwan/nwanroute_old.pid`
-cp /tmp/nwan/nwanroute_new.pid /tmp/nwan/nwanroute_old.pid 
+#echo $$ > /tmp/nwan/nwanroute_new.pid
+#kill -9 `cat /tmp/nwan/nwanroute_old.pid`
+#cp /tmp/nwan/nwanroute_new.pid /tmp/nwan/nwanroute_old.pid 
+newpidfile=/tmp/nwan/nwanroute_new.pid
+oldpidfile=/tmp/nwan/nwanroute_old.pid
+logpath=/tmp/nwan_log
+
+echo $$ > $newpidfile
+if [ -e $oldpidfile ]; then
+	pid=`cat $oldpidfile`
+	while true; do
+		if kill -0 &>1 > /dev/null $pid; then
+			echo "Nwan is running" >> $logpath
+			sleep 3
+		else
+			break
+		fi
+	done
+fi
+cp $newpidfile $oldpidfile
 
 
 . /lib/functions.sh
 
-logpath=/tmp/nwan_log
 
 uci_get() {
 	uci -P /var/state get "$1" 2>/dev/null
@@ -170,8 +186,10 @@ if [ -z $1];
 		ip rule add lookup main prio 32766 
 		ip rule add lookup default prio 32767
 		wan_list=$(uci show -P /var/state/ nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
+		allwan_list=$wan_list
 	else
 		wan_list=$1  #nwan ifup_start
+		allwan_list=$(uci show -P /var/state/ nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
 fi
 	
 [ "$log_record" = "5" ]&&echo wan list : $wan_list >> $logpath
@@ -211,7 +229,7 @@ do
 ###############
 
 	ip_ru_del_0 
-	for WAN_DNS in $dns
+	for WAN_DNS in $dns;
 		do
 			if [ ! "$WAN_DNS" = "0.0.0.0" ]; then
 				local RUN="ip rule add to $WAN_DNS table ${ifc}_rt"
@@ -233,31 +251,43 @@ do
 ###############
 ### add ip route to table
 ###############
-
-	if [ ! "$proto" = "vpn" ]; then
-	    ip route flush table ${ifc}_rt
-	    ip route | grep -v -E "nexthop|default" | while read ROUTE 
-		do 
-	    	#if [ ! "$ROUTE" = "default" ]; then
-			local RUN="ip route append table ${ifc}_rt to $ROUTE"
-			[ "$log_record" = "5" ]&&echo add ip route to table: $RUN  >> $logpath
-			eval $RUN 
-			#fi
-	    done
-	else 
-		ip route flush table ${ifc}_rt
-		local RUN=`ip route | grep br-lan`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
-		local NET=$(echo $RUN | cut -d " " -f1)
-		local DEV=$(echo $RUN | cut -d " " -f3)
-		ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
+		for i in $allwan_list;
+		do
+			if [ $i = $ifc ]; then
+				if [ ! "$proto" = "vpn" ]; then
+					ip route flush table ${ifc}_rt
+					ip route | grep -v -E "nexthop|default" | while read ROUTE 
+					do 
+						#if [ ! "$ROUTE" = "default" ]; then
+						local RUN="ip route append table ${ifc}_rt to $ROUTE"
+						[ "$log_record" = "5" ]&&echo add ip route to table: $RUN  >> $logpath
+						eval $RUN 
+						#fi
+					done
+				else
+					ip route flush table ${ifc}_rt
+					local RUN=`ip route | grep br-lan`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
+					local NET=$(echo $RUN | cut -d " " -f1)
+					local DEV=$(echo $RUN | cut -d " " -f3)
+					ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
 		
-		#########important!!!! only work on this machine.只是在DE2700上使用，因为使用了内网的网关。
-		#local RUN=`ip route | grep 10.24.0.2`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
-		#local NET=$(echo $RUN | cut -d " " -f1)
-		#local DEV=$(echo $RUN | cut -d " " -f3)
-		#ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
-
-	fi
+					#########important!!!! only work on this machine.只是在DE2700上使用，因为使用了内网的网关。
+					#local RUN=`ip route | grep 10.24.0.2`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
+					#local NET=$(echo $RUN | cut -d " " -f1)
+					#local DEV=$(echo $RUN | cut -d " " -f3)
+					#ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
+				fi
+			else
+				if [ ! "$i" = "vpn2" ]; then
+					ip route | grep -v -E "nexthop|default" | grep -w ${ifc} | while read ROUTE
+					do
+						local RUN="ip route append table ${i}_rt to $ROUTE"
+						[ "$log_record" = "5" ]&&echo add ip route to table: $RUN  >> $logpath
+						eval $RUN
+					done
+				fi
+			fi
+		done
 
 ###############
 ### add default route to table
@@ -273,24 +303,24 @@ do
 	#[ "$proto" = "pptp" ]&&ip route add default dev $device table ${ifc}_rt
 
 ###############
-#echo Set PREROUTING?-?±
+#echo Set PREROUTING...
 ###############
 	if [ ! "$proto" = "vpn" ]; 
 		then
-			#?ùóDwan??è?μ?°ü(NEW)??±ê???a mark,×?Wan 2????·óé
+			#所有wan进入的包(NEW)都标记为 mark,走Wan 策略路由
 			#local RUN="iptables -t mangle -A NWANPRE -i $device -m conntrack  --ctstate NEW  -j CONNMARK --set-mark $mark"
 			#if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep $device)" ]; then
 			if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep -w $device)" ]; then
 				local RUN="iptables -t mangle -A NWANPRE -i $device -m state --state NEW  -j CONNMARK --set-mark $mark"
-				[ "$log_record" = "5" ]&&echo  Set NWANPREROUTING?- : $RUN >> $logpath
+				[ "$log_record" = "5" ]&&echo  Set NWANPREROUTING...: $RUN >> $logpath
 				eval $RUN 
 			fi
-			#echo ?°Set POSTROUTING?-?±
-			#?ùóDWAN13?è￥μ?°ü
+			#echo Set POSTROUTING...
+			#所有WAN1出去的包
 			#local RUN="iptables -t mangle -A NWANPOS -o $device  -m conntrack  --ctstate NEW  -j CONNMARK --set-mark $mark"
 			if [ -z "$( iptables -t mangle -nxvL NWANPOS |grep -w $device)" ]; then
 				local RUN="iptables -t mangle -A NWANPOS -o $device  -m state --state NEW  -j CONNMARK --set-mark $mark"
-				[ "$log_record" = "5" ]&&echo  Set NWANPOSTROUTING?- : $RUN >> $logpath
+				[ "$log_record" = "5" ]&&echo  Set NWANPOSTROUTING...: $RUN >> $logpath
 				eval $RUN 
 			fi
 		# else
@@ -306,17 +336,17 @@ done
 ### add iptable rules
 ###############
 
-#?ùóDLAN??è?2￠?òò??-?¨á￠á??óμ?°ü,???′MARK
+#所有LAN进入并且已经建立连接的包,恢复MARK
 
 lan_ifname=$(uci_get network.lan.ifname)
 if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep restore)" ]; then
 	local RUN="iptables -t mangle -I NWANPRE -i $lan_ifname -m conntrack --ctstate ESTABLISHED,RELATED -j CONNMARK --restore-mark"
-	[ "$log_record" = "5" ]&&echo ?ùóDLAN??è?2￠?òò??-?¨á￠á??óμ?°ü,???′MARK: $RUN  >> $logpath
+	[ "$log_record" = "5" ]&&echo 所有LAN进入并且已经建立连接的包,恢复MARK: $RUN  >> $logpath
 	eval $RUN
 fi
 if [ -z "$( iptables -t mangle -nxvL NWANOUT |grep restore)" ]; then
 	local RUN="iptables -t mangle -I NWANOUT -m conntrack --ctstate ESTABLISHED,RELATED -j CONNMARK --restore-mark"
-	[ "$log_record" = "5" ]&&echo ?ùóDLAN??è?2￠?òò??-?¨á￠á??óμ?°ü,output: $RUN  >> $logpath
+	[ "$log_record" = "5" ]&&echo 所有LAN进入并且已经建立连接的包,output: $RUN  >> $logpath
 	eval $RUN
 fi
 
@@ -331,6 +361,7 @@ remove_wan() {
 	echo ---------------------------------- >> $logpath
 	echo -------------start---------------- >> $logpath
 	echo ---------------------------------- >> $logpath
+	
 	local RUN="ip route flush table ${INTERFACE}_rt"
 	eval "$RUN> /dev/null"
 	ip rule | grep -w "${INTERFACE}_rt" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule # delete all the specified ip rules
@@ -360,12 +391,12 @@ remove_wan() {
 		# iptables -t mangle -D PREROUTING -m set --match-set vpn dst -j MARK --set-mark $mark
 	fi
 
-
 	ip route flush cache
 
 	echo ---------------------------------- >> $logpath
 	echo -------------end------------------ >> $logpath
 	echo ---------------------------------- >> $logpath
+	echo '##################################' >> $logpath
 	#add_default_route
 }
 
@@ -384,6 +415,7 @@ route_start(){
 	echo ---------------------------------- >> $logpath
 	echo -------------end------------------ >> $logpath
 	echo ---------------------------------- >> $logpath
+	echo '##################################' >> $logpath
 }
 
 
