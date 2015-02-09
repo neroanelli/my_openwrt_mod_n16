@@ -1,5 +1,9 @@
 /feeds/ramod/luci/contrib/package/luci/
 
+protocol ::
+$(eval $(call protocol,sstp,Support for MS-SSTP))
+
+
 $(eval $(call application,vsftpd,FTP Server,\
 	+PACKAGE_luci-app-vsftpd:vsftpd-pam))
 $(eval $(call application,pdnsd,LuCI Support for pdnsd,\
