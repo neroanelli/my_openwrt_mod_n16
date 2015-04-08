@@ -3,7 +3,7 @@
 # (1)load-balance(N-WAN) Script VER 0.10a-1 for openwrt  by QQ GROUP 120752328
 
 . /lib/functions.sh
-
+. /lib/functions/uci-defaults.sh
 
 
 
@@ -53,6 +53,9 @@ del_network_nwan(){
  uci delete nwan.wan${Line_NO}
  uci delete dhcp.wan${Line_NO}
  done         
+uci delete dhcp.lan4
+uci delete dhcp.lan3
+uci delete dhcp.lan2
 
 }
 
@@ -315,59 +318,11 @@ case $route_modle in
 
 	    71xx)
          #71xx-TP941N 841N V3.. 
-         
-         del_network_nwan 
-         set_network_nwan  
-         uci set network.lan.ifname="lan1 lan2 lan3 lan4" 
-         uci set network.wan.ifname=wan 
-
-
-        case $line_num in
-		  1) 
-	ucidef_add_switch_vlan "eth0" "1" "0t 2 3 4 5"
-	ucidef_add_switch_vlan "eth0" "2" "0t 1"
-uci set network.wan.ifname="eth0.2"
-		ifup wan&
-		  ;;		  
-			2) 
-	ucidef_add_switch_vlan "eth0" "1" "0t 3 4 5"
-	ucidef_add_switch_vlan "eth0" "3" "0t 2"
-	ucidef_add_switch_vlan "eth0" "2" "0t 1"
-uci set network.wan.ifname="eth0.2"
-uci set network.wan100.ifname="eth0.3"
-				ifup wan&ifup wan100&
-		  ;;
-			3)
-	ucidef_add_switch_vlan "eth0" "1" "0t 4 5"
-	ucidef_add_switch_vlan "eth0" "4" "0t 3"
-	ucidef_add_switch_vlan "eth0" "3" "0t 2"
-	ucidef_add_switch_vlan "eth0" "2" "0t 1"
-uci set network.wan.ifname="eth0.2"
-uci set network.wan100.ifname="eth0.3"
-uci set network.wan200.ifname="eth0.4"
-				ifup wan&ifup wan100&ifup wan200&
-		  ;;
-			4) 
-	ucidef_add_switch_vlan "eth0" "1" "0t 5"
-	ucidef_add_switch_vlan "eth0" "5" "0t 4"
-	ucidef_add_switch_vlan "eth0" "4" "0t 3"
-	ucidef_add_switch_vlan "eth0" "3" "0t 2"
-	ucidef_add_switch_vlan "eth0" "2" "0t 1"
-uci set network.wan.ifname="eth0.2"
-uci set network.wan100.ifname="eth0.3"
-uci set network.wan200.ifname="eth0.4"
-uci set network.wan300.ifname="eth0.5"
-		  
-          ifup wan&ifup wan100&ifup wan200&ifup wan300&
-          	;;
-	esac 
-      ;;
-	  9344)
       if_idx=eth0
       del_network_nwan $line_num $if_idx
       set_network_nwan $line_num $if_idx
       del_network_switch
- 
+
   case $line_num in
 		  1) 
 	ucidef_add_switch_vlan "eth0" "1" "0t 2 3 4 5"
@@ -404,97 +359,8 @@ uci set network.wan100.ifname="eth0.3"
 uci set network.wan200.ifname="eth0.4"
 uci set network.wan300.ifname="eth0.5"
 				ifup wan&ifup wan100&ifup wan200&ifup wan300&
-		  ;;
-	esac
-			;; 
-	  9341)
-      if_idx=eth1
-      del_network_nwan $line_num $if_idx
-      set_network_nwan $line_num $if_idx
-      del_network_switch
-	  
-  case $line_num in
-		  1) 
-	ucidef_add_switch "switch0" "1" "1"
-	ucidef_add_switch_vlan "switch0" "1" "0 1 2 3 4"
-	uci set network.wan.ifname="eth0"
-		ifup wan&
-		  ;;		  
-			2) 
-	ucidef_add_switch_vlan "switch0" "1" "0t 1 2 3"
-	ucidef_add_switch_vlan "switch0" "3" "0t 4"
-	ucidef_add_switch_vlan "switch0" "2" "0t 5"
-uci set network.wan.ifname="eth0"
-uci set network.wan100.ifname="eth1.1"
-				ifup wan&ifup wan100&
-		  ;;
-			3)
-	ucidef_add_switch_vlan "eth0" "1" "0t 1 2"
-	ucidef_add_switch_vlan "eth0" "4" "0t 3"
-	ucidef_add_switch_vlan "eth0" "3" "0t 4"
-	ucidef_add_switch_vlan "eth0" "2" "0t 5"
-uci set network.wan.ifname="eth0.2"
-uci set network.wan100.ifname="eth0.3"
-uci set network.wan200.ifname="eth0.4"
-				ifup wan&ifup wan100&ifup wan200&
-		  ;;
-			4) 
-	ucidef_add_switch_vlan "eth0" "1" "0t 1"
-	ucidef_add_switch_vlan "eth0" "5" "0t 2"
-	ucidef_add_switch_vlan "eth0" "4" "0t 3"
-	ucidef_add_switch_vlan "eth0" "3" "0t 4"
-	ucidef_add_switch_vlan "eth0" "2" "0t 5"
-uci set network.wan.ifname="eth0.2"
-uci set network.wan100.ifname="eth0.3"
-uci set network.wan200.ifname="eth0.4"
-uci set network.wan300.ifname="eth0.5"
-				ifup wan&ifup wan100&ifup wan200&ifup wan300&
-		  ;;								
+          	;;
            esac
-	  new71xx)
-      if_idx=eth1
-      del_network_nwan $line_num $if_idx
-      set_network_nwan $line_num $if_idx
-      del_network_switch
-	  
-  case $line_num in
-		  1) 
-	ucidef_add_switch "eth0" "1" "1"
-	ucidef_add_switch_vlan "eth0" "1" "0 1 2 3 4"
-	uci set network.wan.ifname="eth0"
-		ifup wan&
-		  ;;		  
-			2) 
-	ucidef_add_switch_vlan "eth0" "1" "0t 1 2 3"
-	ucidef_add_switch_vlan "eth0" "3" "0t 4"
-	ucidef_add_switch_vlan "eth0" "2" "0t 5"
-uci set network.wan.ifname="eth0"
-uci set network.wan100.ifname="eth1.1"
-				ifup wan&ifup wan100&
-		  ;;
-			3)
-	ucidef_add_switch_vlan "eth0" "1" "0t 1 2"
-	ucidef_add_switch_vlan "eth0" "4" "0t 3"
-	ucidef_add_switch_vlan "eth0" "3" "0t 4"
-	ucidef_add_switch_vlan "eth0" "2" "0t 5"
-uci set network.wan.ifname="eth0.2"
-uci set network.wan100.ifname="eth0.3"
-uci set network.wan200.ifname="eth0.4"
-				ifup wan&ifup wan100&ifup wan200&
-		  ;;
-			4) 
-	ucidef_add_switch_vlan "eth0" "1" "0t 1"
-	ucidef_add_switch_vlan "eth0" "5" "0t 2"
-	ucidef_add_switch_vlan "eth0" "4" "0t 3"
-	ucidef_add_switch_vlan "eth0" "3" "0t 4"
-	ucidef_add_switch_vlan "eth0" "2" "0t 5"
-uci set network.wan.ifname="eth0.2"
-uci set network.wan100.ifname="eth0.3"
-uci set network.wan200.ifname="eth0.4"
-uci set network.wan300.ifname="eth0.5"
-				ifup wan&ifup wan100&ifup wan200&ifup wan300&
-		  ;;								
-	 esac
   	;; 
         
  esac
@@ -509,7 +375,3 @@ uci set network.wan300.ifname="eth0.5"
 	config_load nwannumset
 	config_foreach get_switch_numset switch_numset
   start_nline >/dev/null 2>&1
-
-
-	
-
