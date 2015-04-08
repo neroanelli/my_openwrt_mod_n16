@@ -1,4 +1,4 @@
-#!/bin/sh
+﻿#!/bin/sh
 # load-balance(N-WAN) Script VER 1.1d 2011.1.6 for openwrt  by QQ GROUP 120752328
 
 #echo $$ > /tmp/nwan/nwanroute_new.pid
@@ -11,8 +11,9 @@ logpath=/tmp/nwan_log
 echo $$ > $newpidfile
 if [ -e $oldpidfile ]; then
 	pid=`cat $oldpidfile`
+	cp $newpidfile $oldpidfile
 	while true; do
-		if kill -0 &>1 > /dev/null $pid; then
+		if kill -0 1> /dev/null 2>&1 $pid; then
 			echo "Nwan is running" >> $logpath
 			sleep 3
 		else
@@ -20,7 +21,7 @@ if [ -e $oldpidfile ]; then
 		fi
 	done
 fi
-cp $newpidfile $oldpidfile
+
 
 
 . /lib/functions.sh
@@ -102,6 +103,7 @@ set_rtTables () {
 	#	log_debug 5 "set_rt_Tables:$n $RT"
 		n=`expr $n + 1`
 	fi
+	prio=$n
 	#eval ${1}_RT_TABLE=$RT
 	# log_debug 5 "set_rt_Tables:${1}_RT_TABLE=$RT.....OK"
 }

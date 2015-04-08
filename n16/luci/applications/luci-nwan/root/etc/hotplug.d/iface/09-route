@@ -17,8 +17,8 @@ uci_get_state (){
 	uci -P /var/state get "$1" 2>/dev/null
 }
 get_wan_info (){
-	WAN_INTERFACE=$(echo ${INTERFACE} |grep -c -E "wan|vpn") #接口名字必须为wan或者vpn，否则无法自动更新路由
-	#WAN_INTERFACE=$(echo ${INTERFACE} |grep -c wan)
+	#WAN_INTERFACE=$(echo ${INTERFACE} |grep -c -E "wan|vpn") #接口名字必须为wan或者vpn，否则无法自动更新路由
+	WAN_INTERFACE=$(echo ${INTERFACE} |grep -c wan)
 	PROTO=$(echo $DEVICE | cut -d "-" -f1)
 	new_ipaddr=$(ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2)
 	#local new_netmask=$(uci_get_state  network.${INTERFACE}.netmask)
