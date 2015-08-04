@@ -31,16 +31,21 @@ case "$ACTION" in
 	ifup)
 		echo ++ `date` +++${INTERFACE}+++up++ >> $logpath
 		get_wan_info
-		uci_set_state nwan.${INTERFACE}=$INTERFACE 
-		uci_set_state nwan.${INTERFACE}.connect_time=$(sed -ne 's![^0-9].*$!!p' /proc/uptime)
-		uci_set_state nwan.${INTERFACE}.device=$DEVICE
-		uci_set_state nwan.${INTERFACE}.proto=$PROTO
-		uci_set_state nwan.${INTERFACE}.ipaddr=$new_ipaddr
-		uci_set_state nwan.${INTERFACE}.gateway=$new_gateway
-		#uci_set_state nwan.${INTERFACE}.network=$new_network
-		uci_set_state nwan.${INTERFACE}.status="1"
-		echo "WAN_INTERFACE=$WAN_INTERFACE" >>/tmp/nwandebug
-		[ "$WAN_INTERFACE" -ge "1" ] && sh /lib/nwan/route ifup_start $INTERFACE 
+        echo "WAN_INTERFACE=$WAN_INTERFACE" >>/tmp/nwandebug
+        if [ "$WAN_INTERFACE" -ge "1" ] ; then
+            echo "wanup" >>/tmp/nwandebug
+            uci_set_state nwan.${INTERFACE}=$INTERFACE 
+            uci_set_state nwan.${INTERFACE}.connect_time=$(sed -ne 's![^0-9].*$!!p' /proc/uptime)
+            uci_set_state nwan.${INTERFACE}.device=$DEVICE
+            uci_set_state nwan.${INTERFACE}.proto=$PROTO
+            uci_set_state nwan.${INTERFACE}.ipaddr=$new_ipaddr
+            uci_set_state nwan.${INTERFACE}.gateway=$new_gateway
+            #uci_set_state nwan.${INTERFACE}.network=$new_network
+            uci_set_state nwan.${INTERFACE}.status="1"
+            #echo "WAN_INTERFACE=$WAN_INTERFACE" >>/tmp/nwandebug
+            #[ "$WAN_INTERFACE" -ge "1" ] && sh /lib/nwan/route ifup_start $INTERFACE 
+            sh /lib/nwan/route ifup_start $INTERFACE 
+        fi
 	 ;;
 	ifdown)
 		echo ++ `date` +++${INTERFACE}+++down++ >> $logpath

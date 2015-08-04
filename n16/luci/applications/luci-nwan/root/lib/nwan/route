@@ -1,4 +1,4 @@
-ï»¿#!/bin/sh
+#!/bin/sh
 # load-balance(N-WAN) Script VER 1.1d 2011.1.6 for openwrt  by QQ GROUP 120752328
 
 #echo $$ > /tmp/nwan/nwanroute_new.pid
@@ -273,7 +273,7 @@ do
 					local DEV=$(echo $RUN | cut -d " " -f3)
 					ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
 		
-					#########important!!!! only work on this machine.åªæ˜¯åœ¨DE2700ä¸Šä½¿ç”¨ï¼Œå› ä¸ºä½¿ç”¨äº†å†…ç½‘çš„ç½‘å…³ã€‚
+					#########important!!!! only work on this machine.Ö»ÊÇÔÚDE2700ÉÏÊ¹ÓÃ£¬ÒòÎªÊ¹ÓÃÁËÄÚÍøµÄÍø¹Ø¡£
 					#local RUN=`ip route | grep 10.24.0.2`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
 					#local NET=$(echo $RUN | cut -d " " -f1)
 					#local DEV=$(echo $RUN | cut -d " " -f3)
@@ -310,7 +310,7 @@ do
 ###############
 	if [ ! "$proto" = "vpn" ]; 
 		then
-			#æ‰€æœ‰wanè¿›å…¥çš„åŒ…(NEW)éƒ½æ ‡è®°ä¸º mark,èµ°Wan ç­–ç•¥è·¯ç”±
+			#ËùÓÐwan½øÈëµÄ°ü(NEW)¶¼±ê¼ÇÎª mark,×ßWan ²ßÂÔÂ·ÓÉ
 			#local RUN="iptables -t mangle -A NWANPRE -i $device -m conntrack  --ctstate NEW  -j CONNMARK --set-mark $mark"
 			#if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep $device)" ]; then
 			if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep -w $device)" ]; then
@@ -319,7 +319,7 @@ do
 				eval $RUN 
 			fi
 			#echo Set POSTROUTING...
-			#æ‰€æœ‰WAN1å‡ºåŽ»çš„åŒ…
+			#ËùÓÐWAN1³öÈ¥µÄ°ü
 			#local RUN="iptables -t mangle -A NWANPOS -o $device  -m conntrack  --ctstate NEW  -j CONNMARK --set-mark $mark"
 			if [ -z "$( iptables -t mangle -nxvL NWANPOS |grep -w $device)" ]; then
 				local RUN="iptables -t mangle -A NWANPOS -o $device  -m state --state NEW  -j CONNMARK --set-mark $mark"
@@ -339,17 +339,17 @@ done
 ### add iptable rules
 ###############
 
-#æ‰€æœ‰LANè¿›å…¥å¹¶ä¸”å·²ç»å»ºç«‹è¿žæŽ¥çš„åŒ…,æ¢å¤MARK
+#ËùÓÐLAN½øÈë²¢ÇÒÒÑ¾­½¨Á¢Á¬½ÓµÄ°ü,»Ö¸´MARK
 
 lan_ifname=$(uci_get network.lan.ifname)
 if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep restore)" ]; then
 	local RUN="iptables -t mangle -I NWANPRE -i $lan_ifname -m conntrack --ctstate ESTABLISHED,RELATED -j CONNMARK --restore-mark"
-	[ "$log_record" = "5" ]&&echo æ‰€æœ‰LANè¿›å…¥å¹¶ä¸”å·²ç»å»ºç«‹è¿žæŽ¥çš„åŒ…,æ¢å¤MARK: $RUN  >> $logpath
+	[ "$log_record" = "5" ]&&echo ËùÓÐLAN½øÈë²¢ÇÒÒÑ¾­½¨Á¢Á¬½ÓµÄ°ü,»Ö¸´MARK: $RUN  >> $logpath
 	eval $RUN
 fi
 if [ -z "$( iptables -t mangle -nxvL NWANOUT |grep restore)" ]; then
 	local RUN="iptables -t mangle -I NWANOUT -m conntrack --ctstate ESTABLISHED,RELATED -j CONNMARK --restore-mark"
-	[ "$log_record" = "5" ]&&echo æ‰€æœ‰LANè¿›å…¥å¹¶ä¸”å·²ç»å»ºç«‹è¿žæŽ¥çš„åŒ…,output: $RUN  >> $logpath
+	[ "$log_record" = "5" ]&&echo ËùÓÐLAN½øÈë²¢ÇÒÒÑ¾­½¨Á¢Á¬½ÓµÄ°ü,output: $RUN  >> $logpath
 	eval $RUN
 fi
 

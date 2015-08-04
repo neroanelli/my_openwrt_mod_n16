@@ -16,6 +16,7 @@ proto_xl2tp_init_config() {
 	proto_config_add_boolean "ipv6"
 	proto_config_add_int "mtu"
 	proto_config_add_string "server"
+    proto_config_add_string "oif"
 	available=1
 	no_device=1
 }
@@ -25,11 +26,13 @@ proto_xl2tp_setup() {
 	local iface="$2"
 	local optfile="/tmp/xl2tp/options.${config}"
 
-	local ip serv_addr server
+	local ip serv_addr server oif
+    json_get_var oif oif
 	json_get_var server server && {
 		for ip in $(resolveip -t 5 "$server"); do
 			#support nwan add by neroanelli
 			#( proto_add_host_dependency "$config" "$ip" )
+            ( proto_add_host_dependency "$config" "$ip" $oif )
 			serv_addr=1
 		done
 	}
@@ -39,6 +42,17 @@ proto_xl2tp_setup() {
 		proto_setup_failed "$config"
 		exit 1
 	}
+    ##check the depending interface is running or not 
+	echo "Check depending interface"
+	while true; do
+		if network_is_up $oif; then
+			echo "OK"
+			break
+		else
+			echo "depending interface $oif is not up"
+			sleep 3
+		fi
+	done
 	#/etc/init.d/racoon restart
 	pidfile=/var/run/starter.charon.pid
 	if [ -e $pidfile ]; then

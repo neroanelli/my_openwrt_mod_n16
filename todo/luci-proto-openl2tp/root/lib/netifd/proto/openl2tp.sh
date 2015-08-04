@@ -5,6 +5,7 @@
 [ -n "$INCLUDE_ONLY" ] || {
 	. /lib/functions.sh
 	. ../netifd-proto.sh
+	. /lib/functions/network.sh
 	init_proto "$@"
 }
 
@@ -16,7 +17,7 @@ proto_openl2tp_init_config() {
 	proto_config_add_boolean "ipv6"
 	proto_config_add_boolean "defaultroute"
 	proto_config_add_boolean "peerdns"
-	proto_config_add_string "interface"
+	proto_config_add_string "oif"
 	available=1
 	no_device=1
 }
@@ -30,12 +31,12 @@ proto_openl2tp_setup() {
 	local L2TP="openl2tpd"
 	local CONF="l2tpconfig"
 
-	local ip serv_addr server ipv6 defaultroute peerdns interface
-	json_get_var interface interface
+	local ip serv_addr server ipv6 defaultroute peerdns oif
+	json_get_var oif oif
 	json_get_var server server && {
 		for ip in $(resolveip -t 5 "$server"); do
 			#support nwan add by neroanelli
-			( proto_add_host_dependency "$config" "$ip" $interface )
+			( proto_add_host_dependency "$config" "$ip" $oif )
 			serv_addr=1
 		done
 	}
@@ -45,7 +46,18 @@ proto_openl2tp_setup() {
 		proto_setup_failed "$config"
 		exit 1
 	}
-
+##check the depending interface is running or not 
+	echo "Check depending interface"
+	while true; do
+		if network_is_up $oif; then
+			echo "depending interface $oif is up"
+			break
+		else
+			echo "depending interface $oif is not up"
+			sleep 3
+		fi
+	done
+	
 	json_get_vars username password ipv6 defaultroute peerdns
 	if [ "$ipv6" = 1 ]; then
 		ipv6=1
@@ -73,7 +85,7 @@ proto_openl2tp_setup() {
 		# load=1
 	# done
 	# [ "$load" = "1" ] && sleep 1
-
+    echo "Checking for IPSec... "
 	pidfile=/var/run/starter.charon.pid
 	if [ -e $pidfile ]; then
 		pid=`cat $pidfile`
@@ -87,8 +99,14 @@ proto_openl2tp_setup() {
 			sleep 2
 			ipsec up l2tp-psk-client
 		fi
+	else
+		echo "ipsec is not running... "
+		ipsec start
+		sleep 2
+		ipsec up l2tp-psk-client
 	fi
 	
+	echo "Checking for $RPC... "
 	if ! pidof $RPC 1> /dev/null 2> /dev/null; then
 		echo "Starting $RPC... "
 		RPC_PROG=`which $RPC`

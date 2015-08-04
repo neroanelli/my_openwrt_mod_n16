@@ -26,7 +26,7 @@ for _, p in ipairs({"openl2tp"}) do
 
 	function proto.get_i18n(self)
 		if p == "openl2tp" then
-			return luci.i18n.translate("OL2TP/IPSec")
+			return luci.i18n.translate("OpenL2TP/IPSec")
 		end
 	end
 
@@ -53,13 +53,29 @@ for _, p in ipairs({"openl2tp"}) do
 	function proto.is_virtual(self)
 		return true
 	end
-
+--[[
 	function proto.get_interface(self)
 		return interface(self:ifname(), self)
 	end
 
 	function proto.contains_interface(self, ifc)
 		return (netmod:ifnameof(ifc) == self:ifname())
+	end
+]]--
+    function proto.get_interfaces(self)
+        if self:is_floating() then
+            return nil
+        else
+            return netmod.protocol.get_interfaces(self)
+        end
+	end
+
+	function proto.contains_interface(self, ifc)
+		if self:is_floating() then
+			return (netmod:ifnameof(ifc) == self:ifname())
+		else
+			return netmod.protocol.contains_interface(self, ifc)
+		end
 	end
 
 	netmod:register_pattern_virtual("^%s-%%w" % p)

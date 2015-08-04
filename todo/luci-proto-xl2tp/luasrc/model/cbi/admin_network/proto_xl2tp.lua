@@ -12,10 +12,10 @@ You may obtain a copy of the License at
 
 local map, section, net = ...
 
-local server, username, password
+local server, username, password, psk, outinterface
 local ipv6, defaultroute, metric, peerdns, dns, mtu
 
-
+require("luci.tools.webadmin")
 server = section:taboption("general", Value, "server", translate("L2TP Server"))
 server.datatype = "host"
 
@@ -25,6 +25,17 @@ username = section:taboption("general", Value, "username", translate("PAP/CHAP u
 
 password = section:taboption("general", Value, "password", translate("PAP/CHAP password"))
 password.password = true
+
+psk = section:taboption("general", Value, "psk", translate("Pre Shared Key"))
+psk.password = true
+
+outinterface = s:taboption("general", Value, "oif", translate("Output Interface"))
+luci.tools.webadmin.cbi_add_networks(outinterface)
+outinterface:value("wan", translate("wan"))
+outinterface.optional = false
+outinterface.rmempty = true
+outinterface.default = "wan"
+
 
 if luci.model.network:has_ipv6() then
 
