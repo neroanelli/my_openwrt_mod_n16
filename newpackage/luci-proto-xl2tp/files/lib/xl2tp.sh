@@ -65,6 +65,10 @@ proto_xl2tp_setup() {
 			sleep 2
 			ipsec up l2tp-psk-client
 		fi
+	else
+		ipsec start
+		sleep 2
+		ipsec up l2tp-psk-client
 	fi
 	
 	if [ ! -p /var/run/xl2tpd/l2tp-control ]; then

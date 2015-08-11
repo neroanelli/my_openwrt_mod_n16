@@ -276,14 +276,14 @@
  		/* establish timeout is either disabled or at least 2 minutes */
  		if ((msg->config.tunnel_establish_timeout == 0) ||
 -		    (msg->config.tunnel_establish_timeout >= 120)) {
-+		    (msg->config.tunnel_establish_timeout >= 5)) {
++		    (msg->config.tunnel_establish_timeout >= 10)) {
  			l2tp_tunnel_establish_timeout = msg->config.tunnel_establish_timeout;
  		}
  	}
  	if (msg->config.flags & L2TP_API_CONFIG_FLAG_TUNNEL_PERSIST_PEND_TIMEOUT) {
  		/* persist pend timeout is at least 2 minutes */
 -		if (msg->config.tunnel_persist_pend_timeout >= 120) {
-+		if (msg->config.tunnel_persist_pend_timeout >= 5) {
++		if (msg->config.tunnel_persist_pend_timeout >= 10) {
  			l2tp_tunnel_persist_pend_timeout = msg->config.tunnel_persist_pend_timeout;
  		}
  	}

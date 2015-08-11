@@ -46,7 +46,7 @@ define Package/openl2tp-full
 $(call Package/openl2tp/Default)
   TITLE+=(full)
   VARIANT:=full
-  DEPENDS+=+portmap +libreadline +libncurses $(LIBRPC_DEPENDS)
+  DEPENDS+=+portmap +libreadline +libncurses +ppp-multilink $(LIBRPC_DEPENDS) 
 endef
 
 define Package/openl2tp-full/description

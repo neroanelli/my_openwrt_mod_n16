@@ -1,0 +1,47 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "PolicyRoute"
+msgstr "VPN策略路由"
+
+msgid "Policy Routing for VPN"
+msgstr "VPN策略路由"
+
+msgid "Global Setting"
+msgstr "全局设置"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "Enabled"
+msgstr "已启用"
+
+msgid "Disabled"
+msgstr "已禁用"
+
+msgid "vpn Interface"
+msgstr "VPN 接口"
+
+msgid "Custom"
+msgstr "自定义"
+
+msgid "Ignore List"
+msgstr "忽略列表"
+
+msgid "Access Control"
+msgstr "访问控制"
+
+msgid "Allow listed only"
+msgstr "仅允许列表内"
+
+msgid "Allow all except listed"
+msgstr "仅允许列表外"
+
+msgid "LAN IP List"
+msgstr "内网IP列表"
+
+msgid "Bypassed IP"
+msgstr "被忽略的IP"
+
+msgid "Forwarded IP"
+msgstr "走代理的IP"

@@ -1,0 +1,215 @@
+#!/bin/sh /etc/rc.common
+
+START=90
+STOP=15
+
+. /lib/functions/network.sh
+
+IFACE='vpn'
+#PROTO=$(echo $DEVICE | cut -d "-" -f1)
+LOG='/tmp/vpn.log'
+ipt_m="iptables -t mangle"
+get_config() {
+	config_get_bool enable $1 enable
+	config_get interface $1 interface
+	config_get ignore_list $1 ignore_list
+	config_get lan_ac_mode $1 lan_ac_mode
+	config_get lan_ac_ip $1 lan_ac_ip
+	config_get wan_bp_ip $1 wan_bp_ip
+	config_get wan_fw_ip $1 wan_fw_ip
+	config_get ipt_ext $1 ipt_ext
+}
+
+
+# boot() {
+	# until iptables-save -t nat | grep -q "^:zone_lan_prerouting"; do
+		# sleep 1
+	# done
+	# start
+# }
+
+ac_rule() {
+	local TAG ROUTECHAIN
+
+	if [ -n "$LAN_AC_IP" ]; then
+		if [ "${LAN_AC_IP:0:1}" = "w" ]; then
+			TAG="nomatch"
+		else
+			if [ "${LAN_AC_IP:0:1}" != "b" ]; then
+				loger 3 "Bad argument \`-a $LAN_AC_IP\`."
+				return 2
+			fi
+		fi
+	fi
+	
+	ipset -! -R <<-EOF || return 1
+		create vpn_lan_ac hash:net
+		$(for ip in ${LAN_AC_IP:1}; do echo "add vpn_lan_ac $ip $TAG"; done)
+EOF
+
+	$ipt_m -A PREROUTING \
+		-m set ! --match-set vpn_lan_ac src \
+		-m comment --comment "_VPN_RULE_" -j VPN_WAN_AC
+	$ipt_m -A OUTPUT \
+		-m comment --comment "_VPN_RULE_" -j VPN_WAN_AC
+	return $?
+}
+
+#########################iproute
+add_iproute(){
+	local n
+	local RT
+	local ifc
+	local dev
+	n=200
+	RT=${1}_rt
+	ifc=$1
+	dev=$2
+	ipaddr=$(ifstatus ${ifc} |awk '/"address"/{print $2}'|cut -d \" -f 2)
+
+	if [ -z "`cat /etc/iproute2/rt_tables | grep $RT`" ] ; then
+		while [ "`cat /etc/iproute2/rt_tables | grep "^$n"`" ]
+		do
+			n=`expr $n + 1`
+		done
+		echo "$n $RT" >> /etc/iproute2/rt_tables 
+		n=`expr $n + 1`
+	fi
+	
+	ip rule add from $ipaddr table $RT #prio $n
+	ip rule add fwmark 8 table $RT #prio $n+1
+	ip route flush table $RT
+	local RUN=`ip route | grep br-lan`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
+	local NET=$(echo $RUN | cut -d " " -f1)
+	local DEV=$(echo $RUN | cut -d " " -f3)
+	ip route replace $NET dev $DEV table $RT # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
+	ip route del table $RT default 2>/dev/null
+	ip route del table $RT default 2>/dev/null
+	ip route add default via $ipaddr dev $dev table $RT
+	return $?
+}
+#########################ipset
+ipset_r() {
+	if [ -f "$ignore_list" ]; then
+		IGNORE_IP=$(cat $ignore_list 2>/dev/null)
+	fi
+	WAN_BP_IP=$(for ip in $wan_bp_ip; do echo $ip; done)
+	IPLIST=$(cat <<-EOF | grep -E "^([0-9]{1,3}\.){3}[0-9]{1,3}"
+		$SERVER
+		0.0.0.0/8
+		10.0.0.0/8
+		100.64.0.0/10
+		127.0.0.0/8
+		169.254.0.0/16
+		172.16.0.0/12
+		192.0.0.0/24
+		192.0.2.0/24
+		192.88.99.0/24
+		192.168.0.0/16
+		198.18.0.0/15
+		198.51.100.0/24
+		203.0.113.0/24
+		224.0.0.0/4
+		240.0.0.0/4
+		255.255.255.255
+		$WAN_BP_IP
+		$IGNORE_IP
+	EOF
+	)
+	ipset -! -R <<-EOF || return 1
+		create vpn_wan_ac hash:net
+		$(echo -e "$IPLIST" | sed -e "s/^/add vpn_wan_ac /")
+		$(for ip in $wan_fw_ip; do echo "add vpn_wan_ac $ip nomatch"; done)
+EOF
+	$ipt_m -N VPN_WAN_AC && \
+	$ipt_m -A VPN_WAN_AC -m set --match-set vpn_wan_ac dst -j RETURN && \
+	$ipt_m -A VPN_WAN_AC -j VPN_WAN_FW
+	return $?
+}
+
+fw_rule() {
+	$ipt_m -N VPN_WAN_FW && \
+	$ipt_m -A VPN_WAN_FW \
+		-j MARK --set-mark 8 >/dev/null || {
+		loger 3 "Can't redirect, please check the iptables."
+		exit 1
+	}
+	return $?
+}
+
+add_route() {
+	echo "start" >>$LOG
+	[ "$enable" = 1 ] || exit 0
+	if ! network_is_up $interface ; then 
+		echo "network is not up" >>$LOG
+		exit 0
+	fi
+	if network_get_device DEVICE $interface; then
+		add_iproute $interface $DEVICE
+	fi
+	Srv=$(uci get network.$interface.server)
+	SERVER="`resolveip -t5 $Srv`"
+	fw_rule
+	ipset_r
+	ac_rule
+	
+
+	###whitelist 
+	#remote=$(uci get network.$INTERFACE.server)
+	#remoteip="`resolveip -t5 $remote`"
+	#ipset -A whitelist $remoteip
+	#logger -t vpn $remoteip
+
+
+	ip route add 8.8.8.8 dev $DEVICE
+	ip route add 8.8.4.4 dev $DEVICE
+	ip route add 208.67.222.222 dev $DEVICE
+	ip route add 208.67.220.220 dev $DEVICE
+	ip route flush cache
+	return $?
+}
+
+
+remove_route() {
+	echo "stop" >>$LOG
+	IPT=$(iptables-save -t mangle)
+	eval $(echo "$IPT" | grep "_VPN_RULE_" | \
+		sed -e 's/^-A/$ipt_m -D/' -e 's/$/;/')
+
+	for chain in $(echo "$IPT" | awk '/^:VPN/{print $1}'); do
+		$ipt_m -F ${chain:1} 2>/dev/null && $ipt_m -X ${chain:1}
+	done
+	#iptables -t mangle -D PREROUTING -m set ! --match-set whitelist dst -j MARK --set-mark 8
+	#iptables -t mangle -D OUTPUT -m set ! --match-set whitelist dst -j MARK --set-mark 8
+	ip route del 8.8.8.8
+	ip route del 8.8.4.4
+	ip route del 208.67.222.222
+	ip route del 208.67.220.220
+	local RUN="ip route flush table ${interface}_rt"
+	eval "$RUN> /dev/null"
+	ip rule | grep -w "${interface}_rt" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule # delete all the specified ip rules
+	do 
+		$del_rule
+	done
+	ipset -X vpn_lan_ac 2>/dev/null
+	ipset -X vpn_wan_ac 2>/dev/null
+	ip route del table ${interface}_rt 2>/dev/null
+	ip route flush cache
+	return $?
+}
+
+config_load policyroute
+config_foreach get_config policyroute
+
+start() {
+
+	#######add policy route
+	add_route
+
+}
+
+stop() {
+
+	#########remove policy route
+	remove_route
+}

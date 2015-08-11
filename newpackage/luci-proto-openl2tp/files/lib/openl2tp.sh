@@ -86,7 +86,7 @@ proto_openl2tp_setup() {
 		# load=1
 	# done
 	# [ "$load" = "1" ] && sleep 1
-    echo "Checking for IPSec... "
+    echo "UP@Checking for IPSec... "
 	pidfile=/var/run/starter.charon.pid
 	if [ -e $pidfile ]; then
 		pid=`cat $pidfile`
@@ -107,7 +107,7 @@ proto_openl2tp_setup() {
 		ipsec up l2tp-psk-client
 	fi
 	
-	echo "Checking for $RPC... "
+	echo "UP@Checking for $RPC... "
 	if ! pidof $RPC 1> /dev/null 2> /dev/null; then
 		echo "Starting $RPC... "
 		RPC_PROG=`which $RPC`
@@ -119,7 +119,7 @@ proto_openl2tp_setup() {
 		fi
 	fi
 	
-	echo "Checking for $L2TP... "
+	echo "UP@Checking for $L2TP... "
 	L2TP_PROG=`which $L2TP`
 	if [ -n "$L2TP_PROG" ] && [ -x $L2TP_PROG ]; then
 		echo "yes"
@@ -128,7 +128,7 @@ proto_openl2tp_setup() {
 		return 1
 	fi
 	
-	echo "Checking for $CONF... "
+	echo "UP@Checking for $CONF... "
 	CONF_PROG=`which $CONF`
 	if [ -n "$CONF_PROG" ] && [ -x $CONF_PROG ]; then
 		echo "yes"
@@ -137,7 +137,7 @@ proto_openl2tp_setup() {
 		return 1
 	fi
 
-	echo "Starting $L2TP... "
+	echo "UP@Starting $L2TP... "
 	#/usr/sbin/openl2tpd -D
 	if ! start-stop-daemon -q -S -x $L2TP_PROG; then
 		start-stop-daemon -q -K -x $L2TP_PROG
@@ -229,7 +229,7 @@ proto_openl2tp_teardown() {
 	esac
 	#proto_kill_command "$interface"
 	#rm -f /var/run/openl2tpd.pid 
-	echo "Checking for $L2TP... "
+	echo "DOWN@Checking for $L2TP... "
 	L2TP_PROG=`which $L2TP`
 	if [ -n "$L2TP_PROG" ] && [ -x $L2TP_PROG ]; then
 		echo "yes"
@@ -238,7 +238,7 @@ proto_openl2tp_teardown() {
 		return 1
 	fi
  
-	echo "Checking for $CONF... "
+	echo "DOWN@Checking for $CONF... "
 	CONF_PROG=`which $CONF`
 	if [ -n "$CONF_PROG" ] && [ -x $CONF_PROG ]; then
 		echo "yes"
@@ -247,7 +247,7 @@ proto_openl2tp_teardown() {
 		return 1
 	fi
 	
-	echo "Deleting tunnel... "
+	echo "DOWN@Deleting tunnel... "
 	( echo "session delete tunnel_name=corbina session_name=corbina"
 	echo "quit" ) | $CONF_PROG 1> /dev/null 2> /dev/null
 	if [ $? -ne 0 ]; then
@@ -262,7 +262,7 @@ proto_openl2tp_teardown() {
 		fi
 	fi
 	rm -f ${optfile}
-	echo "Stopping $L2TP... "
+	echo "DOWN@Stopping $L2TP... "
 	if ! start-stop-daemon -q -K -x $L2TP_PROG; then
 		echo "not running"
 		return 1

@@ -1,0 +1,42 @@
+IFACE='vpn'
+#PROTO=$(echo $DEVICE | cut -d "-" -f1)
+LOG='/tmp/vpn.log'
+
+case "$ACTION" in
+	ifup)		
+		if [ $(echo ${INTERFACE} |grep -c ${IFACE}) == 1 ]; then
+			echo \#\#$INTERFACE\#\# >>$LOG
+			echo "up   $(date +"%Y-%m-%d#%T")" >>$LOG
+			ip=`ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2`
+			echo "clientip:$ip" >>$LOG
+			logger -t vpn "Running script due to $ACTION of $INTERFACE ($DEVICE)"
+		fi
+		/etc/init.d/policyroute start
+        #####绑定vpn到指定接口
+        #todo
+        #oif=$(uci get network.${INTERFACE}.interface)
+        oif=wan2
+		if [ $(echo ${INTERFACE} |grep -wc $oif) == 1 ]; then   
+			GW=$(ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2)
+			ipsec restart
+			sleep 2
+			#ipsec up sfo
+			ipsec up l2tp-psk-client
+		fi
+	 ;;
+	ifdown)
+		#VPN_DEV=$(ifconfig | grep "pptp" | sed -e "s#^\([^ ]*\) .*#\1#g")
+		if [ $(echo ${INTERFACE} |grep -c ${IFACE}) == 1 ]; then
+			logger -t vpn "Running script due to $ACTION of $INTERFACE"
+			echo "down $(date +"%Y-%m-%d#%T")" >>$LOG
+			echo "-------------------------------------" >>$LOG
+			###whitelist
+			/etc/init.d/policyroute stop
+			#/etc/init.d/xl2tpd restart
+			if [ ${INTERFACE} == "vpn3" ]; then
+				#ifup vpn3
+				echo "ifup vpn3"
+			fi
+		fi
+	;;
+esac
