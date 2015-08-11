@@ -2,46 +2,46 @@ msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8\n"
 
 msgid "PolicyRoute"
-msgstr "VPN²ßÂÔÂ·ÓÉ"
+msgstr "VPNç­–ç•¥è·¯ç”±"
 
 msgid "Policy Routing for VPN"
-msgstr "VPN²ßÂÔÂ·ÓÉ"
+msgstr "VPNç­–ç•¥è·¯ç”±"
 
 msgid "Global Setting"
-msgstr "È«¾ÖÉèÖÃ"
+msgstr "å…¨å±€è®¾ç½®"
 
 msgid "Enable"
-msgstr "ÆôÓÃ"
+msgstr "å¯ç”¨"
 
 msgid "Enabled"
-msgstr "ÒÑÆôÓÃ"
+msgstr "å·²å¯ç”¨"
 
 msgid "Disabled"
-msgstr "ÒÑ½ûÓÃ"
+msgstr "å·²ç¦ç”¨"
 
 msgid "vpn Interface"
-msgstr "VPN ½Ó¿Ú"
+msgstr "VPN æ¥å£"
 
 msgid "Custom"
-msgstr "×Ô¶¨Òå"
+msgstr "è‡ªå®šä¹‰"
 
 msgid "Ignore List"
-msgstr "ºöÂÔÁĞ±í"
+msgstr "å¿½ç•¥åˆ—è¡¨"
 
 msgid "Access Control"
-msgstr "·ÃÎÊ¿ØÖÆ"
+msgstr "è®¿é—®æ§åˆ¶"
 
 msgid "Allow listed only"
-msgstr "½öÔÊĞíÁĞ±íÄÚ"
+msgstr "ä»…å…è®¸åˆ—è¡¨å†…"
 
 msgid "Allow all except listed"
-msgstr "½öÔÊĞíÁĞ±íÍâ"
+msgstr "ä»…å…è®¸åˆ—è¡¨å¤–"
 
 msgid "LAN IP List"
-msgstr "ÄÚÍøIPÁĞ±í"
+msgstr "å†…ç½‘IPåˆ—è¡¨"
 
 msgid "Bypassed IP"
-msgstr "±»ºöÂÔµÄIP"
+msgstr "è¢«å¿½ç•¥çš„IP"
 
 msgid "Forwarded IP"
-msgstr "×ß´úÀíµÄIP"
+msgstr "èµ°ä»£ç†çš„IP"
