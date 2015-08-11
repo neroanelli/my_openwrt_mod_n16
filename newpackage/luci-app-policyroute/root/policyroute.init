@@ -7,7 +7,7 @@ STOP=15
 
 IFACE='vpn'
 #PROTO=$(echo $DEVICE | cut -d "-" -f1)
-LOG='/tmp/vpn.log'
+LOG='/tmp/pr_debug.log'
 ipt_m="iptables -t mangle"
 get_config() {
 	config_get_bool enable $1 enable
