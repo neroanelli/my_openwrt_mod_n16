@@ -12,7 +12,7 @@ o = s:option(Flag, "enable", translate("Enable"))
 o.default = 0
 o.rmempty = false
 
-o = s:option(Value, "interface", translate("vpn Interface"))
+o = s:option(ListValue, "interface", translate("vpn Interface"))
 luci.tools.webadmin.cbi_add_networks(o)
 o.optional = false
 o.rmempty = false
