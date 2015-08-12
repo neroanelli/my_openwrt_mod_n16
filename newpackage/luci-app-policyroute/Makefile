@@ -12,7 +12,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/luci-app-policyroute
    SECTION:=luci
    CATEGORY:=LuCI
-   DEPENDS:=+libc +ip +iptables
+   DEPENDS:=+libc +ip +iptables +ipset
    TITLE:=Policy-Route LuCI configuration module
    MAINTAINER:=Derron Z <neroanelli@gmail.com>
    PKGARCH:=all

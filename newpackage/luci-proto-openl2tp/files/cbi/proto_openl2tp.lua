@@ -32,11 +32,9 @@ psk.password = true
 --ifname = section:taboption("general", Value, "interface", translate("Output Interface"))
 --ifname.template = "cbi/network_netlist"
 
-outinterface = s:taboption("general", Value, "oif", translate("Output Interface"))
+outinterface = s:taboption("general", ListValue, "oif", translate("Output Interface"))
 luci.tools.webadmin.cbi_add_networks(outinterface)
-outinterface:value("wan", translate("wan"))
 outinterface.optional = false
-outinterface.rmempty = true
 outinterface.default = "wan"
 
 if luci.model.network:has_ipv6() then

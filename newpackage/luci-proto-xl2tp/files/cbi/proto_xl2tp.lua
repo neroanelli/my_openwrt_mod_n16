@@ -29,11 +29,9 @@ password.password = true
 psk = section:taboption("general", Value, "psk", translate("Pre Shared Key"))
 psk.password = true
 
-outinterface = s:taboption("general", Value, "oif", translate("Output Interface"))
+outinterface = s:taboption("general", ListValue, "oif", translate("Output Interface"))
 luci.tools.webadmin.cbi_add_networks(outinterface)
-outinterface:value("wan", translate("wan"))
 outinterface.optional = false
-outinterface.rmempty = true
 outinterface.default = "wan"
 
 

@@ -17,7 +17,6 @@ get_config() {
 	config_get lan_ac_ip $1 lan_ac_ip
 	config_get wan_bp_ip $1 wan_bp_ip
 	config_get wan_fw_ip $1 wan_fw_ip
-	config_get ipt_ext $1 ipt_ext
 }
 
 

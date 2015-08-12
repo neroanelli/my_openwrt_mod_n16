@@ -1,42 +1,41 @@
-IFACE='vpn'
+#!/bin/sh
 #PROTO=$(echo $DEVICE | cut -d "-" -f1)
 LOG='/tmp/vpn.log'
-
+IFACE=$(uci get policyroute.@policyroute[0].interface)
+oif=$(uci get network.${IFACE}.oif)
 case "$ACTION" in
-	ifup)		
-		if [ $(echo ${INTERFACE} |grep -c ${IFACE}) == 1 ]; then
+	ifup)
+		if [ ${INTERFACE} == ${IFACE}) ]; then
 			echo \#\#$INTERFACE\#\# >>$LOG
 			echo "up   $(date +"%Y-%m-%d#%T")" >>$LOG
 			ip=`ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2`
 			echo "clientip:$ip" >>$LOG
-            echo "$(date +%s)" >>$LOG
+			echo "$(date +%s)" >>$LOG
 			logger -t vpn "Running script due to $ACTION of $INTERFACE ($DEVICE)"
 		fi
 		/etc/init.d/policyroute start
-        #####绑定vpn到指定接口
-        #todo
-        #oif=$(uci get network.${INTERFACE}.interface)
-        oif=wan2
-		if [ $(echo ${INTERFACE} |grep -wc $oif) == 1 ]; then   
-			GW=$(ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2)
+		
+		#####绑定vpn到指定接口
+		#####
+		#oif=$(uci get network.${IFACE}.interface)
+		if [ ${INTERFACE} == ${oif} ]; then
 			ipsec restart
 			sleep 2
 			ipsec up l2tp-psk-client
 		fi
 	 ;;
 	ifdown)
-		if [ $(echo ${INTERFACE} |grep -c ${IFACE}) == 1 ]; then
+		if [ ${INTERFACE} == ${IFACE} ]; then
 			logger -t vpn "Running script due to $ACTION of $INTERFACE"
-            DWTime=$(date +%s)
-            UPTime=$(tail -1 $LOG)
-            sed -i '$d' $LOG #delete the last line of logfile
-            DevTime=$(($DWTime - $UPTime))
-            Duration=`awk 'BEGIN{printf "%.2f\n",'$DevTime'/60}'`
+			DWTime=$(date +%s)
+			UPTime=$(tail -1 $LOG)
+			sed -i '$d' $LOG #delete the last line of logfile
+			DevTime=$(($DWTime - $UPTime))
+			Duration=`awk 'BEGIN{printf "%.2f\n",'$DevTime'/60}'`
 			echo "down $(date +"%Y-%m-%d#%T")" >>$LOG
-            echo "Duration:$Duration minutes" >>$LOG
+			echo "Duration:$Duration minutes" >>$LOG
 			echo "-------------------------------------" >>$LOG
 			/etc/init.d/policyroute stop
-
 		fi
 	;;
 esac
