@@ -1,6 +1,8 @@
 #!/bin/sh
 #PROTO=$(echo $DEVICE | cut -d "-" -f1)
 LOG='/tmp/vpn.log'
+enable=$(uci get policyroute.@policyroute[0].enable)
+[ "$enable" = 1 ] || exit 0
 IFACE=$(uci get policyroute.@policyroute[0].interface)
 oif=$(uci get network.${IFACE}.oif)
 case "$ACTION" in

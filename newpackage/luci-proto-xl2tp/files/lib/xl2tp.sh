@@ -26,33 +26,39 @@ proto_xl2tp_setup() {
 	local iface="$2"
 	local optfile="/tmp/xl2tp/options.${config}"
 
+	local oif_addr oif_dev oif_status
 	local ip serv_addr server oif
-    json_get_var oif oif
-	json_get_var server server && {
-		for ip in $(resolveip -t 5 "$server"); do
-			#support nwan add by neroanelli
-			#( proto_add_host_dependency "$config" "$ip" )
-            ( proto_add_host_dependency "$config" "$ip" $oif )
-			serv_addr=1
-		done
-	}
+	json_get_var oif oif
+##check the depending interface is running or not 
+	echo "Check depending interface"
+	while true; do
+		oif_status=$(ifstatus ${oif} |awk '/"up"/{print $2}'|cut -d \, -f 1)
+		if [ "$oif_status" == "true" ]; then
+			echo "depending interface $oif is up"
+			break
+		else
+			echo "depending interface $oif is not up"
+			sleep 5
+		fi
+	done
+	
 	[ -n "$serv_addr" ] || {
 		echo "Could not resolve server address"
 		sleep 5
 		proto_setup_failed "$config"
 		exit 1
 	}
-    ##check the depending interface is running or not 
-	echo "Check depending interface"
-	while true; do
-		if network_is_up $oif; then
-			echo "OK"
-			break
-		else
-			echo "depending interface $oif is not up"
-			sleep 3
-		fi
-	done
+	json_get_var server server && {
+		for ip in $(resolveip -t 5 "$server"); do
+			#support nwan add by neroanelli
+			oif_addr=$(ifstatus ${oif} |awk '/"address"/{print $2}'|cut -d \" -f 2)
+			oif_dev=$(ifstatus ${oif} |awk '/"l3_device"/{print $2}'|cut -d \" -f 2)
+			echo $"ip ro add $ip via $oif_addr dev $oif_dev"
+			ip ro add $ip via $oif_addr dev $oif_dev
+			#( proto_add_host_dependency "$config" "$ip" $oif )
+			serv_addr=1
+		done
+	}
 	#/etc/init.d/racoon restart
 	pidfile=/var/run/starter.charon.pid
 	if [ -e $pidfile ]; then
