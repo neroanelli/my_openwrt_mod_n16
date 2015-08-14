@@ -7,7 +7,7 @@ IFACE=$(uci get policyroute.@policyroute[0].interface)
 oif=$(uci get network.${IFACE}.oif)
 case "$ACTION" in
 	ifup)
-		if [ ${INTERFACE} == ${IFACE}) ]; then
+		if [ ${INTERFACE} == ${IFACE} ]; then
 			echo \#\#$INTERFACE\#\# >>$LOG
 			echo "up   $(date +"%Y-%m-%d#%T")" >>$LOG
 			ip=`ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2`
@@ -22,8 +22,8 @@ case "$ACTION" in
 		#oif=$(uci get network.${IFACE}.interface)
 		if [ ${INTERFACE} == ${oif} ]; then
 			ipsec restart
-			sleep 2
-			ipsec up l2tp-psk-client
+			#sleep 2
+			#ipsec up l2tp-psk-client
 		fi
 	 ;;
 	ifdown)

@@ -99,19 +99,19 @@ proto_openl2tp_setup() {
 		pid=`cat $pidfile`
 		if kill -0 1> /dev/null 2>&1 $pid; then
 			echo "ipsec is running... "
-			ipsec down l2tp-psk-client
-			ipsec up l2tp-psk-client
+			#ipsec down l2tp-psk-client
+			#ipsec up l2tp-psk-client
 		else
 			echo "ipsec is not running... "
 			ipsec start
 			sleep 2
-			ipsec up l2tp-psk-client
+			#ipsec up l2tp-psk-client
 		fi
 	else
 		echo "ipsec is not running... "
 		ipsec start
 		sleep 2
-		ipsec up l2tp-psk-client
+		#ipsec up l2tp-psk-client
 	fi
 	
 	echo "UP@Checking for $RPC... "
@@ -278,7 +278,7 @@ proto_openl2tp_teardown() {
 		rm -f /var/run/$L2TP.pid
 		echo "done"
 	fi
-	ipsec down l2tp-psk-client
+	#ipsec down l2tp-psk-client
 	#proto_init_update "$ifname" 0
 	#proto_send_update "$interface"
 }
