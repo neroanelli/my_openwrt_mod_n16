@@ -12,7 +12,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/luci-proto-openl2tp
    SECTION:=LuCI
    CATEGORY:=Protocols
-   DEPENDS:=+openl2tp-full
+   DEPENDS:=+openl2tp-full +ppp-multilink
    TITLE:=Support for L2TP/IPSec VPN(openl2tp+strongSwan)
    MAINTAINER:=Derron Z <neroanelli@gmail.com>
    PKGARCH:=all
