@@ -180,9 +180,13 @@ kill_nwan_ping  > /dev/null  2>&1
 ###Commented by neroanelli---nwam start
 if [ -z $1]; 
 	then
-		ip rule flush 
-		ip rule flush 
-		ip rule flush 
+		#ip rule flush 
+		#ip rule flush 
+		#ip rule flush 
+		ip_ru_flush
+		ip_ru_flush
+		ip_ru_flush
+		ip ru ls
 		ip rule del table main 
 		ip rule del table default 
 		ip rule add lookup main prio 32766 
