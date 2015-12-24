@@ -58,6 +58,12 @@ ip_ru_del_0() {
 	done
 }
 
+ip_ru_flush() {
+	ip rule |grep -v "vpn\|local" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule # delete all the specified ip rules
+	do 
+		$del_rule
+	done
+}
 make_wan_list() {
 	device=$(uci_get nwan.${ifc}.device) 
 	gateway=$(uci_get nwan.${ifc}.gateway) 
