@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-nwan
 PKG_VERSION:=1.3
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_MAINTAINER:=Derron Z <neroanelli@gmail.com>
 PKG_LICENSE:=GPLv2
 PKG_LICENSE_FILES:=LICENSE
