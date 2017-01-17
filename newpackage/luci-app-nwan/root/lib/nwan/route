@@ -139,7 +139,7 @@ add_default_route()
 {
 	echo "add default route to table" >> $logpath
 	default_route=$NULL 
-	wan_list=$(uci show -P /var/state/ nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
+	wan_list=$(uci -P /var/state/ show nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
 	[ "$log_record" = "5" ]&&echo wan list : $wan_list >> $logpath
 	###Commented by neroanelli
 	for ifc in $wan_list;
@@ -197,11 +197,11 @@ if [ -z $1];
 		ip rule del table default 
 		ip rule add lookup main prio 32766 
 		ip rule add lookup default prio 32767
-		wan_list=$(uci show -P /var/state/ nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
+		wan_list=$(uci -P /var/state/ show nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
 		allwan_list=$wan_list
 	else
 		wan_list=$1  #nwan ifup_start
-		allwan_list=$(uci show -P /var/state/ nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
+		allwan_list=$(uci -P /var/state/ show nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
 fi
 	
 [ "$log_record" = "5" ]&&echo wan list : $wan_list >> $logpath
@@ -283,7 +283,7 @@ do
 					local DEV=$(echo $RUN | cut -d " " -f3)
 					ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
 		
-					#########important!!!! only work on this machine.Ö»ÊÇÔÚDE2700ÉÏÊ¹ÓÃ£¬ÒòÎªÊ¹ÓÃÁËÄÚÍøµÄÍø¹Ø¡£
+					#########important!!!! only work on this machine.åªæ˜¯åœ¨DE2700ä¸Šä½¿ç”¨ï¼Œå› ä¸ºä½¿ç”¨äº†å†…ç½‘çš„ç½‘å…³ã€‚
 					#local RUN=`ip route | grep 10.24.0.2`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
 					#local NET=$(echo $RUN | cut -d " " -f1)
 					#local DEV=$(echo $RUN | cut -d " " -f3)
@@ -320,7 +320,7 @@ do
 ###############
 	if [ ! "$proto" = "vpn" ]; 
 		then
-			#ËùÓÐwan½øÈëµÄ°ü(NEW)¶¼±ê¼ÇÎª mark,×ßWan ²ßÂÔÂ·ÓÉ
+			#æ‰€æœ‰wanè¿›å…¥çš„åŒ…(NEW)éƒ½æ ‡è®°ä¸º mark,èµ°Wan ç­–ç•¥è·¯ç”±
 			#local RUN="iptables -t mangle -A NWANPRE -i $device -m conntrack  --ctstate NEW  -j CONNMARK --set-mark $mark"
 			#if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep $device)" ]; then
 			if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep -w $device)" ]; then
@@ -329,7 +329,7 @@ do
 				eval $RUN 
 			fi
 			#echo Set POSTROUTING...
-			#ËùÓÐWAN1³öÈ¥µÄ°ü
+			#æ‰€æœ‰WAN1å‡ºåŽ»çš„åŒ…
 			#local RUN="iptables -t mangle -A NWANPOS -o $device  -m conntrack  --ctstate NEW  -j CONNMARK --set-mark $mark"
 			if [ -z "$( iptables -t mangle -nxvL NWANPOS |grep -w $device)" ]; then
 				local RUN="iptables -t mangle -A NWANPOS -o $device  -m state --state NEW  -j CONNMARK --set-mark $mark"
@@ -349,17 +349,17 @@ done
 ### add iptable rules
 ###############
 
-#ËùÓÐLAN½øÈë²¢ÇÒÒÑ¾­½¨Á¢Á¬½ÓµÄ°ü,»Ö¸´MARK
+#æ‰€æœ‰LANè¿›å…¥å¹¶ä¸”å·²ç»å»ºç«‹è¿žæŽ¥çš„åŒ…,æ¢å¤MARK
 
 lan_ifname=$(uci_get network.lan.ifname)
 if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep restore)" ]; then
 	local RUN="iptables -t mangle -I NWANPRE -i $lan_ifname -m conntrack --ctstate ESTABLISHED,RELATED -j CONNMARK --restore-mark"
-	[ "$log_record" = "5" ]&&echo ËùÓÐLAN½øÈë²¢ÇÒÒÑ¾­½¨Á¢Á¬½ÓµÄ°ü,»Ö¸´MARK: $RUN  >> $logpath
+	[ "$log_record" = "5" ]&&echo æ‰€æœ‰LANè¿›å…¥å¹¶ä¸”å·²ç»å»ºç«‹è¿žæŽ¥çš„åŒ…,æ¢å¤MARK: $RUN  >> $logpath
 	eval $RUN
 fi
 if [ -z "$( iptables -t mangle -nxvL NWANOUT |grep restore)" ]; then
 	local RUN="iptables -t mangle -I NWANOUT -m conntrack --ctstate ESTABLISHED,RELATED -j CONNMARK --restore-mark"
-	[ "$log_record" = "5" ]&&echo ËùÓÐLAN½øÈë²¢ÇÒÒÑ¾­½¨Á¢Á¬½ÓµÄ°ü,output: $RUN  >> $logpath
+	[ "$log_record" = "5" ]&&echo æ‰€æœ‰LANè¿›å…¥å¹¶ä¸”å·²ç»å»ºç«‹è¿žæŽ¥çš„åŒ…,output: $RUN  >> $logpath
 	eval $RUN
 fi
 
