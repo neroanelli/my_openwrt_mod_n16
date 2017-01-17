@@ -19,17 +19,18 @@ uci_get_state (){
 get_wan_info (){
 	#WAN_INTERFACE=$(echo ${INTERFACE} |grep -c -E "wan|vpn") #接口名字必须为wan或者vpn，否则无法自动更新路由
 	WAN_INTERFACE=$(echo ${INTERFACE} |grep -c wan)
-	#PROTO=$(ifstatus ${INTERFACE} |awk '/"proto"/{print $2}'|cut -d \" -f 2)
+	#PROTO=$(echo $DEVICE | cut -d "-" -f1)
 	#new_ipaddr=$(ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2)
 	#local new_netmask=$(uci_get_state  network.${INTERFACE}.netmask)
 	#new_netmask=${new_netmask:-"255.255.255.0"}
-	network_get_ipaddr new_ipaddr ${INTERFACE} true 
-	network_get_gateway new_gateway ${INTERFACE} true
-	network_get_protocol PROTO ${INTERFACE} true
+	network_get_gateway gateway ${INTERFACE} true
+	network_get_ipaddrs ipaddr ${INTERFACE}
+	network_get_protocol proto ${INTERFACE}
 	#new_gateway=$(ifstatus ${INTERFACE} |awk '/"nexthop"/{print $2}'|cut -d \" -f 2)
 	#new_gateway=${new_gateway:-$(ifstatus ${INTERFACE} |awk '/"nexthop"/{print $2}'|cut -d \" -f 2)}
 }
- 
+
+logger -t nwan "nwan works!"
 case "$ACTION" in
 	ifup)
 		echo ++ `date` +++${INTERFACE}+++up++ >> $logpath
@@ -37,12 +38,14 @@ case "$ACTION" in
         echo "WAN_INTERFACE=$WAN_INTERFACE" >>/tmp/nwandebug
         if [ "$WAN_INTERFACE" -ge "1" ] ; then
             echo "wanup" >>/tmp/nwandebug
+			uci -P /var/state revert nwan.${INTERFACE}
+			uci -P /var/state revert network.${INTERFACE}.gateway
             uci_set_state nwan.${INTERFACE}=$INTERFACE 
             uci_set_state nwan.${INTERFACE}.connect_time=$(sed -ne 's![^0-9].*$!!p' /proc/uptime)
             uci_set_state nwan.${INTERFACE}.device=$DEVICE
-            uci_set_state nwan.${INTERFACE}.proto=$PROTO
-            uci_set_state nwan.${INTERFACE}.ipaddr=$new_ipaddr
-            uci_set_state nwan.${INTERFACE}.gateway=$new_gateway
+            uci_set_state nwan.${INTERFACE}.proto=$proto
+            uci_set_state nwan.${INTERFACE}.ipaddr=$ipaddr
+            uci_set_state nwan.${INTERFACE}.gateway=$gateway
             #uci_set_state nwan.${INTERFACE}.network=$new_network
             uci_set_state nwan.${INTERFACE}.status="1"
             #echo "WAN_INTERFACE=$WAN_INTERFACE" >>/tmp/nwandebug
