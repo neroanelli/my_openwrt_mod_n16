@@ -31,7 +31,7 @@ proto_sstp_setup() {
 	local ip serv_addr server ipv6 defaultroute peerdns
 	json_get_var server server && {
 		for ip in $(resolveip -t 5 "$server"); do
-			( proto_add_host_dependency "$config" "$ip" )
+			#( proto_add_host_dependency "$config" "$ip" )
 			serv_addr=1
 		done
 	}
@@ -117,6 +117,7 @@ proto_sstp_teardown() {
 		;;
 	esac
 	proto_kill_command "$interface"
+	rm -f /tmp/sstp-pppd.*
 }
 
 [ -n "$INCLUDE_ONLY" ] || {
