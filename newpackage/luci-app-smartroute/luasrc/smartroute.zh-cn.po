@@ -1,11 +1,11 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8\n"
 
-msgid "SmartRoute"
-msgstr "VPN智能路由"
+msgid "Smart Route"
+msgstr "智能路由"
 
 msgid "Smart Routing for VPN"
-msgstr "VPN智能路由"
+msgstr "智能路由"
 
 msgid "Global Setting"
 msgstr "全局设置"

@@ -2,10 +2,10 @@
 local m, s, o
 require("luci.tools.webadmin")
 
-m = Map("policyroute","Policy-Route", translate("Policy Routing for VPN"))
+m = Map("smartroute","SmartRoute", translate("Smart Routing for VPN"))
 
 -- Global Setting
-s = m:section(TypedSection, "policyroute", translate("Global Setting"))
+s = m:section(TypedSection, "smartroute", translate("Global Setting"))
 s.anonymous = true
 
 o = s:option(Flag, "enable", translate("Enable"))
@@ -24,7 +24,7 @@ o.default = "/dev/null"
 o.rmempty = false
 
 -- Access Control
-s = m:section(TypedSection, "policyroute", translate("Access Control"))
+s = m:section(TypedSection, "smartroute", translate("Access Control"))
 s.anonymous = true
 
 s:tab("lan_ac", translate("LAN"))

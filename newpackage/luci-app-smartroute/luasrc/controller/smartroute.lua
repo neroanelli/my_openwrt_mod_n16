@@ -1,9 +1,9 @@
-module("luci.controller.policyroute", package.seeall)
+module("luci.controller.smartroute", package.seeall)
 
 function index()
-	if not nixio.fs.access("/etc/config/policyroute") then
+	if not nixio.fs.access("/etc/config/smartroute") then
 		return
 	end
 
-	entry({"admin", "services", "policyroute"}, cbi("policyroute"), _("PolicyRoute"), 74).dependent = true
+	entry({"admin", "network", "smartroute"}, cbi("smartroute"), _("SmartRoute"), 74).dependent = true
 end

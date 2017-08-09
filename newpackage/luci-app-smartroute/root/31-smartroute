@@ -3,11 +3,11 @@
 LOG='/tmp/smartroute.log'
 enable=$(uci get smartroute.@smartroute[0].enable)
 [ "$enable" = 1 ] || exit 0
-IFACE=$(uci get smartroute.@smartroute[0].interface)
-oif=$(uci get network.${IFACE}.oif)
+iface=$(uci get smartroute.@smartroute[0].interface)
+#oif=$(uci get network.${iface}.oif)
 case "$ACTION" in
 	ifup)
-		if [ ${INTERFACE} == ${IFACE} ]; then
+		if [ ${INTERFACE} == ${iface} ]; then
 			echo \#\#$INTERFACE\#\# >>$LOG
 			echo "up   $(date +"%Y-%m-%d#%T")" >>$LOG
 			ip=`ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2`
@@ -19,15 +19,15 @@ case "$ACTION" in
 		
 		#####绑定vpn到指定接口
 		#####
-		#oif=$(uci get network.${IFACE}.interface)
-		if [ ${INTERFACE} == ${oif} ]; then
+		#oif=$(uci get network.${iface}.interface)
+		#if [ ${INTERFACE} == ${oif} ]; then
 			#ipsec restart
 			#sleep 2
 			#ipsec up l2tp-psk-client
-		fi
+		#fi
 	 ;;
 	ifdown)
-		if [ ${INTERFACE} == ${IFACE} ]; then
+		if [ ${INTERFACE} == ${iface} ]; then
 			logger -t smartroute "Running script due to $ACTION of $INTERFACE"
 			DWTime=$(date +%s)
 			UPTime=$(tail -1 $LOG)
