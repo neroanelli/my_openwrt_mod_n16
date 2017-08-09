@@ -1,0 +1,11 @@
+#!/bin/sh
+
+uci -q batch <<-EOF >/dev/null
+	delete ucitrack.@smartroute[-1]
+	add ucitrack smartroute
+	set ucitrack.@smartroute[-1].init=smartroute
+	commit ucitrack
+EOF
+
+rm -f /tmp/luci-indexcache
+exit 0

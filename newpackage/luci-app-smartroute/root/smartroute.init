@@ -7,7 +7,7 @@ STOP=15
 
 IFACE='vpn'
 #PROTO=$(echo $DEVICE | cut -d "-" -f1)
-LOG='/tmp/pr_debug.log'
+LOG='/tmp/sr_debug.log'
 ipt_m="iptables -t mangle"
 get_config() {
 	config_get_bool enable $1 enable
@@ -42,15 +42,15 @@ ac_rule() {
 	fi
 	
 	ipset -! -R <<-EOF || return 1
-		create vpn_lan_ac hash:net
-		$(for ip in ${LAN_AC_IP:1}; do echo "add vpn_lan_ac $ip $TAG"; done)
+		create smart_lan_ac hash:net
+		$(for ip in ${LAN_AC_IP:1}; do echo "add smart_lan_ac $ip $TAG"; done)
 EOF
 
 	$ipt_m -A PREROUTING \
-		-m set ! --match-set vpn_lan_ac src \
-		-m comment --comment "_VPN_RULE_" -j VPN_WAN_AC
+		-m set ! --match-set smart_lan_ac src \
+		-m comment --comment "_SMART_RULE_" -j SMART_WAN_AC
 	$ipt_m -A OUTPUT \
-		-m comment --comment "_VPN_RULE_" -j VPN_WAN_AC
+		-m comment --comment "_SMART_RULE_" -j SMART_WAN_AC
 	return $?
 }
 
@@ -81,7 +81,7 @@ add_iproute(){
 	local RUN=`ip route | grep br-lan`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
 	local NET=$(echo $RUN | cut -d " " -f1)
 	local DEV=$(echo $RUN | cut -d " " -f3)
-	ip route replace $NET dev $DEV table $RT # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
+	ip route replace $NET dev $DEV table $RT # ip route replace 10.24.0.0/24 dev br-lan table GFWSMART_rt
 	ip route del table $RT default 2>/dev/null
 	ip route del table $RT default 2>/dev/null
 	ip route add default via $ipaddr dev $dev table $RT
@@ -116,19 +116,19 @@ ipset_r() {
 	EOF
 	)
 	ipset -! -R <<-EOF || return 1
-		create vpn_wan_ac hash:net
-		$(echo -e "$IPLIST" | sed -e "s/^/add vpn_wan_ac /")
-		$(for ip in $wan_fw_ip; do echo "add vpn_wan_ac $ip nomatch"; done)
+		create smart_wan_ac hash:net
+		$(echo -e "$IPLIST" | sed -e "s/^/add smart_wan_ac /")
+		$(for ip in $wan_fw_ip; do echo "add smart_wan_ac $ip nomatch"; done)
 EOF
-	$ipt_m -N VPN_WAN_AC && \
-	$ipt_m -A VPN_WAN_AC -m set --match-set vpn_wan_ac dst -j RETURN && \
-	$ipt_m -A VPN_WAN_AC -j VPN_WAN_FW
+	$ipt_m -N SMART_WAN_AC && \
+	$ipt_m -A SMART_WAN_AC -m set --match-set smart_wan_ac dst -j RETURN && \
+	$ipt_m -A SMART_WAN_AC -j SMART_WAN_FW
 	return $?
 }
 
 fw_rule() {
-	$ipt_m -N VPN_WAN_FW && \
-	$ipt_m -A VPN_WAN_FW \
+	$ipt_m -N SMART_WAN_FW && \
+	$ipt_m -A SMART_WAN_FW \
 		-j MARK --set-mark 8 >/dev/null || {
 		loger 3 "Can't redirect, please check the iptables."
 		exit 1
@@ -172,7 +172,7 @@ add_route() {
 remove_route() {
 	echo "stop" >>$LOG
 	IPT=$(iptables-save -t mangle)
-	eval $(echo "$IPT" | grep "_VPN_RULE_" | \
+	eval $(echo "$IPT" | grep "_SMART_RULE_" | \
 		sed -e 's/^-A/$ipt_m -D/' -e 's/$/;/')
 
 	for chain in $(echo "$IPT" | awk '/^:VPN/{print $1}'); do
@@ -190,25 +190,25 @@ remove_route() {
 	do 
 		$del_rule
 	done
-	ipset -X vpn_lan_ac 2>/dev/null
-	ipset -X vpn_wan_ac 2>/dev/null
+	ipset -X smart_lan_ac 2>/dev/null
+	ipset -X smart_wan_ac 2>/dev/null
 	ip route del table ${interface}_rt 2>/dev/null
 	ip route flush cache
 	return $?
 }
 
-config_load policyroute
-config_foreach get_config policyroute
+config_load smartroute
+config_foreach get_config smartroute
 
 start() {
 
-	#######add policy route
+	#######add smart route
 	add_route
 
 }
 
 stop() {
 
-	#########remove policy route
+	#########remove smart route
 	remove_route
 }

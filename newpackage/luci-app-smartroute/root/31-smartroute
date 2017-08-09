@@ -1,9 +1,9 @@
 #!/bin/sh
 #PROTO=$(echo $DEVICE | cut -d "-" -f1)
-LOG='/tmp/vpn.log'
-enable=$(uci get policyroute.@policyroute[0].enable)
+LOG='/tmp/smartroute.log'
+enable=$(uci get smartroute.@smartroute[0].enable)
 [ "$enable" = 1 ] || exit 0
-IFACE=$(uci get policyroute.@policyroute[0].interface)
+IFACE=$(uci get smartroute.@smartroute[0].interface)
 oif=$(uci get network.${IFACE}.oif)
 case "$ACTION" in
 	ifup)
@@ -13,22 +13,22 @@ case "$ACTION" in
 			ip=`ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2`
 			echo "clientip:$ip" >>$LOG
 			echo "$(date +%s)" >>$LOG
-			logger -t vpn "Running script due to $ACTION of $INTERFACE ($DEVICE)"
+			logger -t smartroute "Running script due to $ACTION of $INTERFACE ($DEVICE)"
 		fi
-		/etc/init.d/policyroute start
+		/etc/init.d/smartroute start
 		
 		#####绑定vpn到指定接口
 		#####
 		#oif=$(uci get network.${IFACE}.interface)
 		if [ ${INTERFACE} == ${oif} ]; then
-			ipsec restart
+			#ipsec restart
 			#sleep 2
 			#ipsec up l2tp-psk-client
 		fi
 	 ;;
 	ifdown)
 		if [ ${INTERFACE} == ${IFACE} ]; then
-			logger -t vpn "Running script due to $ACTION of $INTERFACE"
+			logger -t smartroute "Running script due to $ACTION of $INTERFACE"
 			DWTime=$(date +%s)
 			UPTime=$(tail -1 $LOG)
 			sed -i '$d' $LOG #delete the last line of logfile
@@ -37,7 +37,7 @@ case "$ACTION" in
 			echo "down $(date +"%Y-%m-%d#%T")" >>$LOG
 			echo "Duration:$Duration minutes" >>$LOG
 			echo "-------------------------------------" >>$LOG
-			/etc/init.d/policyroute stop
+			/etc/init.d/smartroute stop
 		fi
 	;;
 esac

@@ -1,11 +1,11 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8\n"
 
-msgid "PolicyRoute"
-msgstr "VPN策略路由"
+msgid "SmartRoute"
+msgstr "VPN智能路由"
 
-msgid "Policy Routing for VPN"
-msgstr "VPN策略路由"
+msgid "Smart Routing for VPN"
+msgstr "VPN智能路由"
 
 msgid "Global Setting"
 msgstr "全局设置"
