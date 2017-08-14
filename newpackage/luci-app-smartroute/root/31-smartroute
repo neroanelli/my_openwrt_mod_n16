@@ -14,9 +14,12 @@ case "$ACTION" in
 			echo "clientip:$ip" >>$LOG
 			echo "$(date +%s)" >>$LOG
 			logger -t smartroute "Running script due to $ACTION of $INTERFACE ($DEVICE)"
-		fi
-		/etc/init.d/smartroute start
 		
+		/etc/init.d/smartroute start
+		uci delete dhcp.@dnsmasq[0].server
+		uci add_list dhcp.@dnsmasq[0].server='127.0.0.1#5353'
+		uci commit
+		/etc/init.d/dnsmasq restart
 		#####绑定vpn到指定接口
 		#####
 		#oif=$(uci get network.${iface}.interface)
@@ -25,6 +28,7 @@ case "$ACTION" in
 			#sleep 2
 			#ipsec up l2tp-psk-client
 		#fi
+		fi
 	 ;;
 	ifdown)
 		if [ ${INTERFACE} == ${iface} ]; then
@@ -38,6 +42,11 @@ case "$ACTION" in
 			echo "Duration:$Duration minutes" >>$LOG
 			echo "-------------------------------------" >>$LOG
 			/etc/init.d/smartroute stop
+			uci delete dhcp.@dnsmasq[0].server
+			uci add_list dhcp.@dnsmasq[0].server='223.5.5.5'
+			uci add_list dhcp.@dnsmasq[0].server='114.114.114.114'
+			uci commit
+			/etc/init.d/dnsmasq restart
 		fi
 	;;
 esac
