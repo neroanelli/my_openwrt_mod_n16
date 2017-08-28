@@ -5,5 +5,5 @@ function index()
 		return
 	end
 
-	entry({"admin", "network", "smartroute"}, cbi("smartroute"), _("SmartRoute"), 74).dependent = true
+	entry({"admin", "network", "smartroute"}, cbi("smartroute"), _("Smart Route"), 74).dependent = true
 end
