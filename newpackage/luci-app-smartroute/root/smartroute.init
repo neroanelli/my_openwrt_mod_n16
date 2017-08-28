@@ -28,21 +28,21 @@ get_config() {
 # }
 
 ac_rule() {
-	local TAG LAN_AC
+	local TAG LAN_AC_ARG
 	if [ -n "$lan_ac_ip" ]; then
 		case $lan_ac_mode in
-			1) LAN_AC="w$lan_ac_ip"
+			1) LAN_AC_ARG="w$lan_ac_ip"
 			;;
-			2) LAN_AC="b$lan_ac_ip"
+			2) LAN_AC_ARG="b$lan_ac_ip"
 			;;
 		esac
 	fi
-	if [ -n "$LAN_AC" ]; then
-		if [ "${LAN_AC:0:1}" = "w" ]; then
+	if [ -n "$LAN_AC_ARG" ]; then
+		if [ "${LAN_AC_ARG:0:1}" = "w" ]; then
 			TAG="nomatch"
 		else
-			if [ "${LAN_AC:0:1}" != "b" ]; then
-				loger 3 "Bad argument \`-a $LAN_AC_IP\`."
+			if [ "${LAN_AC_ARG:0:1}" != "b" ]; then
+				loger 3 "Bad argument \`-a $LAN_AC_ARG\`."
 				return 2
 			fi
 		fi
@@ -50,7 +50,7 @@ ac_rule() {
 	
 	ipset -! -R <<-EOF || return 1
 		create smart_lan_ac hash:net
-		$(for ip in ${LAN_AC:1}; do echo "add smart_lan_ac $ip $TAG"; done)
+		$(for ip in ${LAN_AC_ARG:1}; do echo "add smart_lan_ac $ip $TAG"; done)
 EOF
 
 	$ipt_m -A PREROUTING \
@@ -164,7 +164,6 @@ add_route() {
 	#remote=$(uci get network.$INTERFACE.server)
 	#remoteip="`resolveip -t5 $remote`"
 	#ipset -A whitelist $remoteip
-	#logger -t vpn $remoteip
 
 
 	ip route add 8.8.8.8 dev $DEVICE
@@ -182,7 +181,7 @@ remove_route() {
 	eval $(echo "$IPT" | grep "_SMART_RULE_" | \
 		sed -e 's/^-A/$ipt_m -D/' -e 's/$/;/')
 
-	for chain in $(echo "$IPT" | awk '/^:VPN/{print $1}'); do
+	for chain in $(echo "$IPT" | awk '/^:SMART/{print $1}'); do
 		$ipt_m -F ${chain:1} 2>/dev/null && $ipt_m -X ${chain:1}
 	done
 	#iptables -t mangle -D PREROUTING -m set ! --match-set whitelist dst -j MARK --set-mark 8
