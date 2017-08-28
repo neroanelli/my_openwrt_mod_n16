@@ -2,7 +2,7 @@
 local m, s, o
 require("luci.tools.webadmin")
 
-m = Map("smartroute","SmartRoute", translate("Smart Routing for VPN"))
+m = Map("smartroute","Smart Route", translate("Smart Routing for VPN"))
 
 -- Global Setting
 s = m:section(TypedSection, "smartroute", translate("Global Setting"))
