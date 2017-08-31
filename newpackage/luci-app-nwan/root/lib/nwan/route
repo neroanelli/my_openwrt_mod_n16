@@ -65,17 +65,18 @@ ip_ru_flush() {
 	done
 }
 make_wan_list() {
-	device=$(uci_get nwan.${ifc}.device) 
-	gateway=$(uci_get nwan.${ifc}.gateway) 
-	proto=$(uci_get network.${ifc}.proto) 
-	# local ifname=$(uci_get network.${ifc}.ifname) 
-	dns=$(uci_get network.${ifc}.dns) 
-	ipaddr=$(uci_get nwan.${ifc}.ipaddr) 
-	weight=$(uci_get nwan.${ifc}.weight) 
-	name=$(uci_get nwan.${ifc}.name) 
-	route=$(uci_get nwan.${ifc}.route) 
-	if [ -n "$ifc" ]; then
-		num=`echo $ifc | tr -d "wan"`
+	local interface=$1
+	device=$(uci_get nwan.${interface}.device) 
+	gateway=$(uci_get nwan.${interface}.gateway) 
+	proto=$(uci_get network.${interface}.proto) 
+	# local ifname=$(uci_get network.${interface}.ifname) 
+	dns=$(uci_get network.${interface}.dns) 
+	ipaddr=$(uci_get nwan.${interface}.ipaddr) 
+	weight=$(uci_get nwan.${interface}.weight) 
+	name=$(uci_get nwan.${interface}.name) 
+	route=$(uci_get nwan.${interface}.route) 
+	if [ -n "$interface" ]; then
+		num=`echo $interface | tr -d "wan"`
 	fi
 	if [ -z $num ] ; then num=0; fi  
 	mark=$((($num+1)*10))  
@@ -149,7 +150,7 @@ add_default_route()
 ### add default route with weight
 ###############
 
-		make_wan_list
+		make_wan_list $ifc
 
 		if [ ! "$proto" = "vpn" ]; then
 			if [ ! "$proto" = "pppoe" ]; then
@@ -216,7 +217,7 @@ for ifc in $wan_list;
 do
 
 	[ "$log_record" = "5" ]&&echo now srart $ifc setting +++++  >> $logpath
-	make_wan_list
+	make_wan_list $ifc
 	[ "$log_record" = "5" ]&&echo $ifc list device=$device gateway=$gateway proto=$proto dns=$dns ipaddr=$ipaddr  >> $logpath
 	echo "0" > /proc/sys/net/ipv4/conf/${device}/rp_filter    
 
@@ -231,6 +232,11 @@ do
 ###############
 
 	ip_ru_del_0 
+	
+	ip rule | grep -w "${ifc}_rt" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule 
+	do
+		$del_rule
+	done
 
 	local RUN="ip rule add from $ipaddr table ${ifc}_rt"
 	[ "$log_record" = "5" ]&&echo add ip to rule: $RUN  >> $logpath
@@ -278,7 +284,7 @@ do
 					done
 				else
 					ip route flush table ${ifc}_rt
-					local RUN=`ip route | grep br-lan`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
+					local RUN=`ip route | grep br-`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
 					local NET=$(echo $RUN | cut -d " " -f1)
 					local DEV=$(echo $RUN | cut -d " " -f3)
 					ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
@@ -384,7 +390,7 @@ remove_wan() {
 	## del iptables 
 	#iptables -t mangle -A NWANPRE -i pppoe-wan -m state --state NEW -j CONNMARK --set-mark 10
 	ifc=$INTERFACE
-	make_wan_list
+	make_wan_list $ifc
 	if [ ! "$proto" = "vpn" ];
 		then
 		#mark=`printf "%x" $mark`

@@ -140,16 +140,29 @@ testip.rmempty = false
 int = m:section(TypedSection, "interface", translate("nwan_interface","WAN Interfaces"))
 int.template = "cbi/tblsection"
 int.addremove = true
+int.anonymous = true
 
-name = int:option(ListValue, "name", translate("nwan_isp_name","isp name"))
-name:value("mobile", translate("nwan_isp_mobile","mobile"))
-name:value("other", translate("nwan_isp_other","other"))
-name:value("telecom", translate("nwan_isp_telecom","telecom"))
-name:value("unicom", translate("nwan_isp_unicom","unicom"))
-name.default = "telecom"
+name = int:option(Value, "name", translate("nwan_inter","WAN Uplink"))
+luci.tools.webadmin.cbi_add_networks(name)
+name:value("wan", translate("wan"))
 name.optional = false
 name.rmempty = true
-name.widget = "select"
+name.default = "wan"
+
+enable = int:option(Flag, "enable", translate("enable", "enable"))
+enable.default = false
+enable.optional = false
+enable.rmempty = false
+
+netlist = int:option(ListValue, "netlist", translate("nwan_isp_name","isp name"))
+netlist:value("mobile", translate("nwan_isp_mobile","mobile"))
+netlist:value("other", translate("nwan_isp_other","other"))
+netlist:value("telecom", translate("nwan_isp_telecom","telecom"))
+netlist:value("unicom", translate("nwan_isp_unicom","unicom"))
+netlist.default = "telecom"
+netlist.optional = false
+netlist.rmempty = true
+netlist.widget = "select"
 
 
 

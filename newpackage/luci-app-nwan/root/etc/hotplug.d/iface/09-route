@@ -1,5 +1,6 @@
 #!/bin/ash
 # load-balance(N-WAN) Script VER 1.1i 2011.4.4 for openwrt  by QQ GROUP 120752328
+. /lib/functions.sh
 . /lib/functions/network.sh
 logpath=/tmp/nwan_log
  
@@ -7,18 +8,29 @@ uci_get() {
 	uci -P /var/state get "$1" 2>/dev/null
 }
 
-uci_set_state (){
+uci_set_state() {
 	
 	uci -P /var/state set "$1" 2>/dev/null
 }
 
-uci_get_state (){
+uci_get_state() {
 	
 	uci -P /var/state get "$1" 2>/dev/null
 }
+load_nwan() {
+	local name
+	local enable
+	local iface="$2"
+	config_get enable $1 enable
+	config_get name $1 name 
+	[ "$name" = "$iface" ] && [ "$enable" = "1" ] && pass=1
+}
 get_wan_info (){
 	#WAN_INTERFACE=$(echo ${INTERFACE} |grep -c -E "wan|vpn") #接口名字必须为wan或者vpn，否则无法自动更新路由
-	WAN_INTERFACE=$(echo ${INTERFACE} |grep -c wan)
+	#WAN_INTERFACE=$(echo ${INTERFACE} |grep -c wan)
+	pass=0
+	config_load nwan
+	config_foreach load_nwan interface ${INTERFACE}
 	#PROTO=$(echo $DEVICE | cut -d "-" -f1)
 	#new_ipaddr=$(ifstatus ${INTERFACE} |awk '/"address"/{print $2}'|cut -d \" -f 2)
 	#local new_netmask=$(uci_get_state  network.${INTERFACE}.netmask)
@@ -35,8 +47,8 @@ case "$ACTION" in
 	ifup)
 		echo ++ `date` +++${INTERFACE}+++up++ >> $logpath
 		get_wan_info
-        echo "WAN_INTERFACE=$WAN_INTERFACE" >>/tmp/nwandebug
-        if [ "$WAN_INTERFACE" -ge "1" ] ; then
+        echo "${INTERFACE}=$pass" >>/tmp/nwandebug
+        if [ "$pass" -ge "1" ] ; then
             echo "wanup" >>/tmp/nwandebug
 			uci -P /var/state revert nwan.${INTERFACE}
 			uci -P /var/state revert network.${INTERFACE}.gateway
@@ -56,6 +68,6 @@ case "$ACTION" in
 	ifdown)
 		echo ++ `date` +++${INTERFACE}+++down++ >> $logpath
 		get_wan_info
-		[ "$WAN_INTERFACE" -ge "1" ] && sh /lib/nwan/route ifdown_start $INTERFACE 
+		[ "$pass" -ge "1" ] && sh /lib/nwan/route ifdown_start $INTERFACE 
 	;;
 esac
