@@ -8,8 +8,6 @@ function index()
 	entry({"admin", "services", "shadowsocksr", "main"}, cbi("shadowsocksr/main"), _("ShadowsocksR Setting"), 10).leaf = true  
 	entry({"admin", "services", "shadowsocksr", "check"}, call("check_status"))
 	entry({"admin", "services", "shadowsocksr", "server"}, cbi("shadowsocksr/server"), _("ShadowsocksR Server"), 20).leaf = true  
-
-	-- entry({"admin", "services", "shadowsocksr", "client"}, cbi("shadowsocksr/client"), _("ShadowsocksR client"))
 	-- page.dependent = true
 end
 

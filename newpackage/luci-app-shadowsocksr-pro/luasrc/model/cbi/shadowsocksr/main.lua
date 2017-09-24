@@ -23,50 +23,6 @@ m.description = translate("A fast secure tunnel proxy that help you get through 
 
 local server_table = {}
 
--- local encrypt_methods = {
-	-- "table",
-	-- "rc4",
-	-- "rc4-md5",
-	-- "rc4-md5-6",
-	-- "aes-128-cfb",
-	-- "aes-192-cfb",
-	-- "aes-256-cfb",
-	-- "aes-128-ctr",
-	-- "aes-192-ctr",
-	-- "aes-256-ctr",	
-	-- "bf-cfb",
-	-- "camellia-128-cfb",
-	-- "camellia-192-cfb",
-	-- "camellia-256-cfb",
-	-- "cast5-cfb",
-	-- "des-cfb",
-	-- "idea-cfb",
-	-- "rc2-cfb",
-	-- "seed-cfb",
-	-- "salsa20",
-	-- "chacha20",
-	-- "chacha20-ietf",
--- }
-
--- local protocol = {
-	-- "origin",
-	-- "verify_simple",
-	-- "verify_sha1",		
-	-- "auth_sha1",
-	-- "auth_sha1_v2",
-	-- "auth_sha1_v4",
-	-- "auth_aes128_sha1",
-	-- "auth_aes128_md5",
--- }
-
--- obfs = {
-	-- "plain",
-	-- "http_simple",
-	-- "http_post",
-	-- "tls_simple",	
-	-- "tls1.2_ticket_auth",
--- }
-
 uci:foreach("shadowsocksr", "servers", function(s)
 	if s.alias then
 		server_table[s[".name"]] = s.alias
@@ -75,11 +31,6 @@ uci:foreach("shadowsocksr", "servers", function(s)
 	end
 end)
 
--- [[ addon Servers Setting ]]--
-
-
-
-----
 
 s = m:section(TypedSection, "shadowsocksr")
 s.anonymous = true
@@ -88,7 +39,6 @@ s.description = translate(string.format("%s<br /><br />", Status))
 -- ---------------------------------------------------
 -- [[ Base Setting ]]--
 s:tab("basic",  translate("Base Setting"))
-
 
 switch = s:taboption("basic",Flag, "enabled", translate("Enable"))
 switch.rmempty = false
@@ -170,81 +120,6 @@ safe_dns_tcp.rmempty = false
 
 
 
-
--- [[ test Setting ]]--
--- s:tab("test",  translate("test Setting"))
-
-
--- switch = s:taboption("test",Flag, "a", translate("Enable"))
--- switch.rmempty = false
-
-
-
-
--- [[ Servers Setting ]]--
--- s:tab("main",  translate("Servers Setting"))
-
--- server = s:taboption("main", Value, "server", translate("Server Address"))
--- server.optional = false
--- server.datatype = "host"
--- server.rmempty = false
-
-
--- server_port = s:taboption("main", Value, "server_port", translate("Server Port"))
--- server_port.datatype = "range(1,65535)"
--- server_port.optional = false
--- server_port.rmempty = false
-
--- password = s:taboption("main", Value, "password", translate("Password"))
--- password.password = true
-
--- method = s:taboption("main", ListValue, "method", translate("Encryption Method"))
--- method:value("none")
--- method:value("aes-128-ctr")
--- method:value("aes-192-ctr")
--- method:value("aes-256-ctr")
--- method:value("aes-128-cfb")
--- method:value("aes-192-cfb")
--- method:value("aes-256-cfb")
--- method:value("rc4")
--- method:value("rc4-md5")
--- method:value("rc4-md5-6")
--- method:value("salsa20")
--- method:value("chacha20")
--- method:value("chacha20-ietf")
-
--- protocol = s:taboption("main", ListValue, "protocol", translate("Protocol"))
--- protocol:value("origin")
--- protocol:value("verify_deflate")
--- protocol:value("auth_sha1_v4")
--- protocol:value("auth_aes128_md5")
--- protocol:value("auth_aes128_sha1")
--- protocol:value("auth_chain_a")
--- protocol:value("auth_chain_b")
--- protocol:value("auth_chain_c")
--- protocol:value("auth_chain_d")
-
--- obfs = s:taboption("main", ListValue, "obfs", translate("Obfs Param"))
--- obfs:value("plain")
--- obfs:value("http_simple")
--- obfs:value("http_post")
--- obfs:value("random_head")
--- obfs:value("tls1.2_ticket_auth")
--- obfs:value("tls1.2_ticket_fastauth")
-
--- plugin_param = s:taboption("main", Flag, "plugin_param", translate("Plug-in parameters"),
--- 	translate("Incorrect use of this parameter will cause IP to be blocked. Please use it with care"))
--- plugin_param:depends("obfs", "http_simple")
--- plugin_param:depends("obfs", "http_post")
--- plugin_param:depends("obfs", "tls1.2_ticket_auth")
--- plugin_param:depends("obfs", "tls1.2_ticket_fastauth")
-
--- obfs_param = s:taboption("main", Value, "obfs_param", translate("Confusing plug-in parameters"))
--- obfs_param.rmempty = true
--- obfs_param.datatype = "host"
--- obfs_param:depends("plugin_param", "1")
-
-
 -- [[ User-defined GFW-List ]]--
 s:tab("list",  translate("User-defined GFW-List"))
 gfwlist = s:taboption("list", TextValue, "conf")
@@ -259,7 +134,6 @@ gfwlist.write = function(self, section, value)
 end
 
 local addipconf = "/etc/shadowsocksr/addinip.txt"
-
 
 -- [[ GFW-List Add-in IP ]]--
 s:tab("addip",  translate("GFW-List Add-in IP"))
@@ -292,8 +166,6 @@ ckgoogle.template = "shadowsocksr/check"
 -- 	SYS.call("sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1 &")
 -- end
 
-
-
 ckbaidu = s:taboption("status", DummyValue, "baidu", translate("Baidu Connectivity")) 
 ckbaidu.value = translate("Not Checked") 
 ckbaidu.template = "shadowsocksr/check"
@@ -315,8 +187,6 @@ function log.write(self, section, value)
 	value = value:gsub("\r\n?", "\n")
 	nixio.fs.writefile(dog, value)
 end
-
-
 
 t=m:section(TypedSection,"acl_rule",translate("<strong>Client Proxy Mode Settings</strong>"),
 translate("Proxy mode settings can be set to specific LAN clients ( <font color=blue> No Proxy, Global Proxy, Game Mode</font>) . Does not need to be set by default."))

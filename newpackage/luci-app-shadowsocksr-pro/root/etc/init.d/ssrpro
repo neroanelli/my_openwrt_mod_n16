@@ -62,7 +62,6 @@ start()
 		gb_switch_enable=1
 	fi
 	[ "$global_server" = "nil" ] && return 1
-	#local server_port=$(uci_get_by_name $global_server server_port)
 	local cfg_enabled=$(uci_get_by_type $CONFIGNAME enabled)
 	local cfg_local_port=$(uci_get_by_type $CONFIGNAME local_port)
 	local cfg_enable_switch=$(uci_get_by_type $CONFIGNAME enable_switch)
@@ -225,19 +224,10 @@ restart()
 
 reload()
 {
-	# local cfg_enabled=$(uci_get_by_type $CONFIGNAME enabled)
-	# local vt_server_addr=`uci get shadowsocksr.@shadowsocksr[0].server`
-	# local vt_server_port=`uci get shadowsocksr.@shadowsocksr[0].server_port`
-	# local cfg_safe_dns=`uci get shadowsocksr.@shadowsocksr[0].safe_dns 2>/dev/null`
-	# local cfg_safe_dns_port=`uci get shadowsocksr.@shadowsocksr[0].safe_dns_port 2>/dev/null`
-	# local cfg_safe_dns_tcp=`uci get shadowsocksr.@shadowsocksr[0].safe_dns_tcp 2>/dev/null`
-	# local cfg_proxy_mode=`uci get shadowsocksr.@shadowsocksr[0].proxy_mode`
-	# local cfg_gfwlist=`__gfwlist_by_mode $cfg_proxy_mode`
 	local global_server=$(uci_get_by_type $CONFIGNAME global_server)
 	local cfg_enabled=$(uci_get_by_type $CONFIGNAME enabled)
 	local cfg_local_port=$(uci_get_by_type $CONFIGNAME local_port)
 	local vt_server_addr=$(uci_get_by_name $global_server server)
-	# local vt_server_port=$(uci_get_by_name $global_server server_port)
 	local cfg_safe_dns=$(uci_get_by_type $CONFIGNAME safe_dns)
 	local cfg_safe_dns_port=$(uci_get_by_type $CONFIGNAME safe_dns_port)
 	local cfg_safe_dns_tcp=$(uci_get_by_type $CONFIGNAME safe_dns_tcp)
@@ -326,12 +316,12 @@ stop_pdnsd()
 add_cron()
 {
 	sed -i '/up-gfwlist.sh/d' $CRON_FILE
-	#sed -i '/shadowsocksr_watchdog.log/d' $CRON_FILE
+	sed -i '/ssr-switch.log/d' $CRON_FILE
 	if [ $cfg_cron_mode -eq 1 ]; then
 		echo '0 5 * * * /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1' >> $CRON_FILE	
 	fi
 	#echo '0 */1 * * * /etc/shadowsocksr/ssr-watchdog >> /tmp/shadowsocksr_watchdog.log 2>&1' >> $CRON_FILE
-	echo '0 1 * * 0 echo "" > /tmp/shadowsocksr_watchdog.log' >> $CRON_FILE
+	echo '0 1 * * 0 echo "" > /tmp/ssr-switch.log' >> $CRON_FILE
 	crontab $CRON_FILE
 }
 
