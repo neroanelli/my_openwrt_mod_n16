@@ -3,15 +3,21 @@
 #
 
 START=99
+STOP=15
 
-SS_REDIR_PORT=7070
+SERVICE_DAEMONIZE=1  ####import! detach server_start /usr/bin/ssr-switch
 SS_REDIR_PIDFILE=/var/run/ssr-redir-go.pid 
 PDNSD_LOCAL_PORT=7453
-SSRCONF=/etc/shadowsocksr.json
+USER=nobody
+GROUP=nogroup
+CACHEDIR=/var/pdnsd
+CACHE=$CACHEDIR/pdnsd.cache
+SSRCONF=/var/etc/shadowsocksr.json
 CRON_FILE=/etc/crontabs/root
-CONFIG=shadowsocksr
+CONFIGNAME=shadowsocksr
 
-
+newserver=$1
+gb_switch_enable=0
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 	# $covered_subnets, $local_addresses are not required
@@ -31,52 +37,84 @@ __gfwlist_by_mode()
 	esac
 }
 
+uci_get_by_name() {
+	local ret=$(uci get $CONFIGNAME.$1.$2 2>/dev/null)
+	echo ${ret:=$3}
+}
 
+uci_get_by_type() {
+	local index=0
+	if [ -n $4 ]; then
+		index=$4
+	fi
+	local ret=$(uci get $CONFIGNAME.@$1[$index].$2 2>/dev/null)
+	echo ${ret:=$3}
+}
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 start()
 {
-  local vt_enabled=`uci get shadowsocksr.@shadowsocksr[0].enabled 2>/dev/null`
-  local vt_server_addr=`uci get shadowsocksr.@shadowsocksr[0].server`
-  local vt_server_port=`uci get shadowsocksr.@shadowsocksr[0].server_port`
-  local vt_password=`uci get shadowsocksr.@shadowsocksr[0].password 2>/dev/null`
-  local vt_method=`uci get shadowsocksr.@shadowsocksr[0].method`
-  local vt_protocol=`uci get shadowsocksr.@shadowsocksr[0].protocol`
-  local vt_obfs=`uci get shadowsocksr.@shadowsocksr[0].obfs`
-  local vt_timeout=`uci get shadowsocksr.@shadowsocksr[0].timeout 2>/dev/null`
-  local vt_safe_dns=`uci get shadowsocksr.@shadowsocksr[0].safe_dns 2>/dev/null`
-  local vt_safe_dns_port=`uci get shadowsocksr.@shadowsocksr[0].safe_dns_port 2>/dev/null`
-  local vt_safe_dns_tcp=`uci get shadowsocksr.@shadowsocksr[0].safe_dns_tcp 2>/dev/null`
-  local vt_proxy_mode=`uci get shadowsocksr.@shadowsocksr[0].proxy_mode`
-  local obfs_param=`uci get shadowsocksr.@shadowsocksr[0].obfs_param 2>/dev/null`
-  local cron_mode=`uci get shadowsocksr.@shadowsocksr[0].cron_mode 2>/dev/null`
-  local vt_gfwlist=`__gfwlist_by_mode $vt_proxy_mode`
 
-	[ -f /etc/init.d/pdnsd ] && /etc/init.d/pdnsd disable 2>/dev/null
+	if [ -z "$newserver" ] ;then
+		global_server=$(uci_get_by_type $CONFIGNAME global_server)
+	else
+		global_server=$newserver
+		gb_switch_enable=1
+	fi
+	[ "$global_server" = "nil" ] && return 1
+	#local server_port=$(uci_get_by_name $global_server server_port)
+	local cfg_enabled=$(uci_get_by_type $CONFIGNAME enabled)
+	local cfg_local_port=$(uci_get_by_type $CONFIGNAME local_port)
+	local cfg_enable_switch=$(uci_get_by_type $CONFIGNAME enable_switch)
+	local cfg_delay_time=$(uci_get_by_type $CONFIGNAME delay_time)
+	local cfg_check_timeout=$(uci_get_by_type $CONFIGNAME check_timeout)
+	local cfg_safe_dns=$(uci_get_by_type $CONFIGNAME safe_dns)
+	local cfg_safe_dns_port=$(uci_get_by_type $CONFIGNAME safe_dns_port)
+	local cfg_safe_dns_tcp=$(uci_get_by_type $CONFIGNAME safe_dns_tcp)
+	local cfg_proxy_mode=$(uci_get_by_type $CONFIGNAME proxy_mode)
+	local cfg_cron_mode=$(uci_get_by_type $CONFIGNAME cron_mode)
+	local cfg_gfwlist=`__gfwlist_by_mode $cfg_proxy_mode`
+	local vt_server_addr=$(uci_get_by_name $global_server server)
+	local vt_server_port=$(uci_get_by_name $global_server server_port)
+	local vt_switch_enable=$(uci_get_by_name $global_server switch_enable)
+	local vt_fast_open=$(uci_get_by_name $global_server fast_open)
+	local vt_password=$(uci_get_by_name $global_server password)
+	local vt_method=$(uci_get_by_name $global_server method)
+	local vt_protocol=$(uci_get_by_name $global_server protocol)
+	local vt_obfs=$(uci_get_by_name $global_server obfs)
+	local vt_timeout=$(uci_get_by_name $global_server timeout)
+	local vt_obfs_param=$(uci_get_by_name $global_server obfs_param)
 
-	# -----------------------------------------------------------------
-	if [ "$vt_enabled" = 0 ]; then
+	SS_REDIR_PORT=$cfg_local_port
+
+	if [ "$cfg_enabled" = 0 ]; then
 		echo "WARNING: Shadowsocksr is disabled."
 		return 1
 	fi
+	[ -f /etc/init.d/pdnsd ] && /etc/init.d/pdnsd disable 2>/dev/null
 
+	# -----------------------------------------------------------------
 	if [ -z "$vt_server_addr" -o -z "$vt_server_port" ]; then
 		echo "WARNING: Shadowsocksr not fully configured, not starting."
 		return 1
 	fi
 
-	[ -z "$vt_proxy_mode" ] && vt_proxy_mode=M
+	[ -z "$cfg_proxy_mode" ] && cfg_proxy_mode=M
 	[ -z "$vt_method" ] && vt_method=table
+	[ -z "$cfg_local_port" ] && cfg_local_port=7070
 	[ -z "$vt_timeout" ] && vt_timeout=60
-	case "$vt_proxy_mode" in
+	case "$cfg_proxy_mode" in
 		M|S|G)
-			[ -z "$vt_safe_dns" ] && vt_safe_dns="8.8.8.8"
-			[ -z "$vt_safe_dns_tcp" ] && vt_safe_dns_tcp=1
+			[ -z "$cfg_safe_dns" ] && cfg_safe_dns="8.8.8.8"
+			[ -z "$cfg_safe_dns_tcp" ] && cfg_safe_dns_tcp=1
 			;;
 	esac
-	[ -z "$vt_safe_dns_port" ] && vt_safe_dns_port=53
-
+	[ -z "$cfg_safe_dns_port" ] && cfg_safe_dns_port=53
+	if [ $vt_fast_open = "1" ] ;then
+		vt_fastopen="true";
+	else
+		vt_fastopen="false";
+	fi
 	# -----------------------------------------------------------------
 	###### shadowsocksr ######
 	cat > $SSRCONF <<EOF
@@ -86,41 +124,41 @@ start()
     "password": "$vt_password",
     "method": "$vt_method",
     "local_address": "0.0.0.0",
-    "local_port": $SS_REDIR_PORT,
+    "local_port": $cfg_local_port,
     "timeout": $vt_timeout,
     "protocol": "$vt_protocol",
     "protocol_param": "",
     "obfs": "$vt_obfs",
-    "obfs_param": "$obfs_param",
-    "fast_open": false
+    "obfs_param": "$vt_obfs_param",
+    "fast_open": $vt_fastopen
 }
 EOF
 	/usr/bin/ssr-redir -u -c $SSRCONF -f $SS_REDIR_PIDFILE || return 1
 
 	# IPv4 firewall rules
-  add_rule
+	add_rule
   
 	# -----------------------------------------------------------------
 	mkdir -p /var/etc/dnsmasq-go.d
 	###### Anti-pollution configuration ######
-	if [ -n "$vt_safe_dns" ]; then
-		if [ "$vt_safe_dns_tcp" = 1 ]; then
-			start_pdnsd "$vt_safe_dns"
+	if [ -n "$cfg_safe_dns" ]; then
+		if [ "$cfg_safe_dns_tcp" = 1 ]; then
+			start_pdnsd "$cfg_safe_dns"
 			awk -vs="127.0.0.1#$PDNSD_LOCAL_PORT" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
-				/etc/gfwlist/$vt_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
+				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
 		else
-			awk -vs="$vt_safe_dns#$vt_safe_dns_port" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
-				/etc/gfwlist/$vt_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
+			awk -vs="$cfg_safe_dns#$cfg_safe_dns_port" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
+				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
 		fi
 	else
 		echo "WARNING: Not using secure DNS, DNS resolution might be polluted if you are in China."
 	fi
 
 	###### dnsmasq-to-ipset configuration ######
-	case "$vt_proxy_mode" in
+	case "$cfg_proxy_mode" in
 		M|V)
-			awk '!/^$/&&!/^#/{printf("ipset=/%s/'"$vt_gfwlist"'\n",$0)}' \
-				/etc/gfwlist/$vt_gfwlist > /var/etc/dnsmasq-go.d/02-ipset.conf
+			awk '!/^$/&&!/^#/{printf("ipset=/%s/'"$cfg_gfwlist"'\n",$0)}' \
+				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/02-ipset.conf
 			;;
 	esac
 
@@ -132,9 +170,22 @@ EOF
 conf-dir=/var/etc/dnsmasq-go.d
 EOF
 		/etc/init.d/dnsmasq restart
-
-
 	fi
+
+
+
+	# -----------------------------------------------------------------
+	###### switch server ######
+	if [ $cfg_enable_switch = "1" ] ;then
+		if [ $vt_switch_enable = "1" ] ;then
+			if [ -z "$newserver" ] ;then
+				service_start /usr/bin/ssr-switch start $cfg_delay_time $cfg_check_timeout
+				gb_switch_enable=1
+			fi
+		fi
+	fi
+
+# cron jobs
 	add_cron
 }
 
@@ -151,7 +202,7 @@ stop()
 	stop_pdnsd
 
 	# --STOP IPv4 firewall---------------------------------------------------------------
-  del_rule
+	del_rule
   
 	# -----------------------------------------------------------------
 	if [ -f $SS_REDIR_PIDFILE ]; then
@@ -159,6 +210,9 @@ stop()
 		rm -f $SS_REDIR_PIDFILE
 	fi
 	killall -9 ssr-redir 2>/dev/null
+	if [ -z "$switch_server" ] ;then
+		killall -q -9 ssr-switch
+	fi
 	del_cron
 }
 
@@ -171,38 +225,46 @@ restart()
 
 reload()
 {
-  local vt_enabled=`uci get shadowsocksr.@shadowsocksr[0].enabled 2>/dev/null`
-  local vt_server_addr=`uci get shadowsocksr.@shadowsocksr[0].server`
-  local vt_server_port=`uci get shadowsocksr.@shadowsocksr[0].server_port`
-  local vt_safe_dns=`uci get shadowsocksr.@shadowsocksr[0].safe_dns 2>/dev/null`
-  local vt_safe_dns_port=`uci get shadowsocksr.@shadowsocksr[0].safe_dns_port 2>/dev/null`
-  local vt_safe_dns_tcp=`uci get shadowsocksr.@shadowsocksr[0].safe_dns_tcp 2>/dev/null`
-  local vt_proxy_mode=`uci get shadowsocksr.@shadowsocksr[0].proxy_mode`
-  local vt_gfwlist=`__gfwlist_by_mode $vt_proxy_mode`
+	# local cfg_enabled=$(uci_get_by_type $CONFIGNAME enabled)
+	# local vt_server_addr=`uci get shadowsocksr.@shadowsocksr[0].server`
+	# local vt_server_port=`uci get shadowsocksr.@shadowsocksr[0].server_port`
+	# local cfg_safe_dns=`uci get shadowsocksr.@shadowsocksr[0].safe_dns 2>/dev/null`
+	# local cfg_safe_dns_port=`uci get shadowsocksr.@shadowsocksr[0].safe_dns_port 2>/dev/null`
+	# local cfg_safe_dns_tcp=`uci get shadowsocksr.@shadowsocksr[0].safe_dns_tcp 2>/dev/null`
+	# local cfg_proxy_mode=`uci get shadowsocksr.@shadowsocksr[0].proxy_mode`
+	# local cfg_gfwlist=`__gfwlist_by_mode $cfg_proxy_mode`
+	local global_server=$(uci_get_by_type $CONFIGNAME global_server)
+	local cfg_enabled=$(uci_get_by_type $CONFIGNAME enabled)
+	local cfg_local_port=$(uci_get_by_type $CONFIGNAME local_port)
+	local vt_server_addr=$(uci_get_by_name $global_server server)
+	# local vt_server_port=$(uci_get_by_name $global_server server_port)
+	local cfg_safe_dns=$(uci_get_by_type $CONFIGNAME safe_dns)
+	local cfg_safe_dns_port=$(uci_get_by_type $CONFIGNAME safe_dns_port)
+	local cfg_safe_dns_tcp=$(uci_get_by_type $CONFIGNAME safe_dns_tcp)
+	local cfg_proxy_mode=$(uci_get_by_type $CONFIGNAME proxy_mode)
+	local cfg_gfwlist=`__gfwlist_by_mode $cfg_proxy_mode`
+
+	SS_REDIR_PORT=$cfg_local_port
+
+
 	KEEP_GFWLIST=Y
 	del_rule
 	add_rule
-	if [ "$vt_safe_dns_tcp" = 1 ]; then
-    stop_pdnsd
-    start_pdnsd
+	if [ "$cfg_safe_dns_tcp" = 1 ]; then
+		stop_pdnsd
+		start_pdnsd
 	fi
 }
 
 # $1: upstream DNS server
-
 gen_cache()
 {
-	USER=nobody
-	GROUP=nogroup
-	CACHEDIR=/var/pdnsd
-	CACHE=$CACHEDIR/pdnsd.cache
 	if ! test -f "$CACHE"; then
 		mkdir -p `dirname $CACHE`
 		echo -n -e "pd13\0\0\0\0" > "$CACHE"
 		chown -R $USER.$GROUP $CACHEDIR
 	fi
 }
-
 start_pdnsd()
 {
 	local safe_dns="$1"
@@ -212,7 +274,6 @@ start_pdnsd()
 
 	#killall -9 pdnsd 2>/dev/null && sleep 1
 	kill -9 $(cat /var/run/pdnsd.pid) >/dev/null 2>&1 && mkdir -p /var/etc /var/pdnsd
-	gen_cache
 	cat > /var/etc/pdnsd.conf <<EOF
 global {
 	perm_cache=off;
@@ -240,7 +301,7 @@ server {
 	purge_cache=off;
 }
 EOF
-
+	gen_cache
 	/usr/sbin/pdnsd -c /var/etc/pdnsd.conf -d
 
 	# Access TCP DNS server through Shadowsocksr tunnel
@@ -264,12 +325,12 @@ stop_pdnsd()
 
 add_cron()
 {
-  sed -i '/up-gfwlist.sh/d' $CRON_FILE
-	sed -i '/shadowsocksr_watchdog.log/d' $CRON_FILE
-	if [ $cron_mode -eq 1 ]; then
+	sed -i '/up-gfwlist.sh/d' $CRON_FILE
+	#sed -i '/shadowsocksr_watchdog.log/d' $CRON_FILE
+	if [ $cfg_cron_mode -eq 1 ]; then
 		echo '0 5 * * * /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1' >> $CRON_FILE	
 	fi
-	echo '0 */1 * * * /etc/shadowsocksr/ssr-watchdog >> /tmp/shadowsocksr_watchdog.log 2>&1' >> $CRON_FILE
+	#echo '0 */1 * * * /etc/shadowsocksr/ssr-watchdog >> /tmp/shadowsocksr_watchdog.log 2>&1' >> $CRON_FILE
 	echo '0 1 * * 0 echo "" > /tmp/shadowsocksr_watchdog.log' >> $CRON_FILE
 	crontab $CRON_FILE
 }
@@ -281,21 +342,6 @@ del_cron()
 	/etc/init.d/cron restart
 }
 
-
-
-uci_get_by_name() {
-	local ret=$(uci get $CONFIG.$1.$2 2>/dev/null)
-	echo ${ret:=$3}
-}
-
-uci_get_by_type() {
-	local index=0
-	if [ -n $4 ]; then
-		index=$4
-	fi
-	local ret=$(uci get $CONFIG.@$1[$index].$2 2>/dev/null)
-	echo ${ret:=$3}
-}
 
 add_rule()
 {
@@ -320,7 +366,6 @@ add_rule()
 	iptables -t mangle -A gameboost -p udp --dport 53 -j RETURN
 	iptables -t mangle -A gameboost -p udp -j TPROXY --on-port 7070 --tproxy-mark 0x01/0x01
 	iptables -t mangle -A PREROUTING -m set --match-set gameuser src -j gameboost 
-
 	for i in $(seq 0 100)
 	do
 		local ip=$(uci_get_by_type acl_rule ipaddr '' $i)
@@ -339,26 +384,25 @@ add_rule()
 			;;
 		esac
 	done
-
-	case "$vt_proxy_mode" in
+	case "$cfg_proxy_mode" in
 		G) : ;;
 		S)
 			iptables -t nat -A shadowsocksr_pre -m set --match-set $vt_np_ipset dst -j RETURN
 			iptables -t nat -I OUTPUT -p tcp -m multiport --dports 80,443 -m set ! --match-set $vt_np_ipset dst -j REDIRECT --to $SS_REDIR_PORT
 			;;
 		M)
-			ipset -! create $vt_gfwlist hash:ip maxelem 65536 2>/dev/null
-      awk '!/^$/&&!/^#/{printf("add vt_gfwlist %s'" "'\n",$0)}' /etc/shadowsocksr/addinip.txt > /tmp/addinip.ipset
-      sed -i "s/vt_gfwlist/$vt_gfwlist/g" /tmp/addinip.ipset
+			ipset -! create $cfg_gfwlist hash:ip maxelem 65536 2>/dev/null
+      awk '!/^$/&&!/^#/{printf("add cfg_gfwlist %s'" "'\n",$0)}' /etc/shadowsocksr/addinip.txt > /tmp/addinip.ipset
+      sed -i "s/cfg_gfwlist/$cfg_gfwlist/g" /tmp/addinip.ipset
       ipset -! restore < /tmp/addinip.ipset
-			iptables -t nat -A shadowsocksr_pre -m set ! --match-set $vt_gfwlist dst -j RETURN
+			iptables -t nat -A shadowsocksr_pre -m set ! --match-set $cfg_gfwlist dst -j RETURN
 			iptables -t nat -A shadowsocksr_pre -m set --match-set $vt_np_ipset dst -j RETURN
-			iptables -t nat -I OUTPUT -p tcp -m multiport --dports 80,443 -m set --match-set $vt_gfwlist dst -j REDIRECT --to $SS_REDIR_PORT
+			iptables -t nat -I OUTPUT -p tcp -m multiport --dports 80,443 -m set --match-set $cfg_gfwlist dst -j REDIRECT --to $SS_REDIR_PORT
 			;;
 		V)
 			vt_np_ipset=""
-			ipset -! create $vt_gfwlist hash:ip maxelem 65536 2>/dev/null
-			iptables -t nat -A shadowsocksr_pre -m set ! --match-set $vt_gfwlist dst -j RETURN
+			ipset -! create $cfg_gfwlist hash:ip maxelem 65536 2>/dev/null
+			iptables -t nat -A shadowsocksr_pre -m set ! --match-set $cfg_gfwlist dst -j RETURN
 			;;
 	esac
 	local subnet
@@ -389,5 +433,5 @@ del_rule()
 
 
 	# -----------------------------------------------------------------
-	[ "$KEEP_GFWLIST" = Y ] || ipset destroy "$vt_gfwlist" 2>/dev/null
+	[ "$KEEP_GFWLIST" = Y ] || ipset destroy "$cfg_gfwlist" 2>/dev/null
 }

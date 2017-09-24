@@ -6,7 +6,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI support for Shadowsocksr
-LUCI_DEPENDS:=+iptables-mod-tproxy +kmod-ipt-tproxy +ip +ipset-lists +shadowsocksr-libev-alt +pdnsd-alt +coreutils +coreutils-base64 +coreutils-nohup +dnsmasq-full +netcat
+LUCI_DEPENDS:=+iptables-mod-tproxy +kmod-ipt-tproxy +ip +ipset-lists +shadowsocksr-libev-alt +pdnsd-alt +coreutils +coreutils-base64 +coreutils-nohup +dnsmasq-full +netcat +wget
 LUCI_PKGARCH:=all
 PKG_VERSION:=2.0
 PKG_RELEASE:=16

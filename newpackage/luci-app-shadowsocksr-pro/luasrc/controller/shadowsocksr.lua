@@ -22,6 +22,7 @@ function check_status()
 	-- if  para == "baidu" then
 	-- 	webaddr = "www.baidu.com"
 	-- end
+	--local set ="/usr/bin/ssr-check www." .. luci.http.formvalue("set") .. ".com 80 3 1"
 	--local set ="/usr/bin/wget --spider --quiet --tries=5 --timeout=3 www.gstatic.com/generate_204"
 	local set ="/usr/bin/nc -z -w3 www." .. para .. ".com 80"
 	sret=luci.sys.call(set)

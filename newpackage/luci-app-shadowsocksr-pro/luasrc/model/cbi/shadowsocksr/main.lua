@@ -3,6 +3,7 @@ local fs = require "nixio.fs"
 local NXFS = require "nixio.fs"
 local WLFS = require "nixio.fs"
 local SYS  = require "luci.sys"
+local uci = luci.model.uci.cursor()
 local ND = SYS.exec("cat /etc/gfwlist/china-banned | wc -l")
 local conf = "/etc/shadowsocksr/base-gfwlist.txt"
 local watch = "/tmp/shadowsocksr_watchdog.log"
@@ -20,17 +21,104 @@ m = Map("shadowsocksr")
 m.title	= translate("Shadowsocksr Transparent Proxy")
 m.description = translate("A fast secure tunnel proxy that help you get through firewalls on your router")
 
+local server_table = {}
+
+-- local encrypt_methods = {
+	-- "table",
+	-- "rc4",
+	-- "rc4-md5",
+	-- "rc4-md5-6",
+	-- "aes-128-cfb",
+	-- "aes-192-cfb",
+	-- "aes-256-cfb",
+	-- "aes-128-ctr",
+	-- "aes-192-ctr",
+	-- "aes-256-ctr",	
+	-- "bf-cfb",
+	-- "camellia-128-cfb",
+	-- "camellia-192-cfb",
+	-- "camellia-256-cfb",
+	-- "cast5-cfb",
+	-- "des-cfb",
+	-- "idea-cfb",
+	-- "rc2-cfb",
+	-- "seed-cfb",
+	-- "salsa20",
+	-- "chacha20",
+	-- "chacha20-ietf",
+-- }
+
+-- local protocol = {
+	-- "origin",
+	-- "verify_simple",
+	-- "verify_sha1",		
+	-- "auth_sha1",
+	-- "auth_sha1_v2",
+	-- "auth_sha1_v4",
+	-- "auth_aes128_sha1",
+	-- "auth_aes128_md5",
+-- }
+
+-- obfs = {
+	-- "plain",
+	-- "http_simple",
+	-- "http_post",
+	-- "tls_simple",	
+	-- "tls1.2_ticket_auth",
+-- }
+
+uci:foreach("shadowsocksr", "servers", function(s)
+	if s.alias then
+		server_table[s[".name"]] = s.alias
+	elseif s.server and s.server_port then
+		server_table[s[".name"]] = "%s:%s" %{s.server, s.server_port}
+	end
+end)
+
+-- [[ addon Servers Setting ]]--
+
+
+
+----
+
 s = m:section(TypedSection, "shadowsocksr")
 s.anonymous = true
 s.description = translate(string.format("%s<br /><br />", Status))
 
 -- ---------------------------------------------------
-
+-- [[ Base Setting ]]--
 s:tab("basic",  translate("Base Setting"))
 
 
 switch = s:taboption("basic",Flag, "enabled", translate("Enable"))
 switch.rmempty = false
+
+global_server = s:taboption("basic", ListValue, "global_server", translate("Global Server"))
+global_server:value("nil", translate("Disable"))
+for k, v in pairs(server_table) do global_server:value(k, v) end
+global_server.default = "nil"
+global_server.rmempty = false
+
+local_port = s:taboption("basic", Value, "local_port", translate("Local Port"))
+local_port.datatype = "range(1,65535)"
+local_port.optional = false
+local_port.rmempty = false
+
+-- monitor_enable = s:taboption("basic", Flag, "monitor_enable", translate("Enable Process Monitor"))
+-- monitor_enable.rmempty = false
+
+enable_switch = s:taboption("basic", Flag, "enable_switch", translate("Enable Auto Switch"))
+enable_switch.rmempty = false
+
+delay_time = s:taboption("basic", Value, "delay_time", translate("Switch Check Cycly(second)"))
+delay_time.datatype = "uinteger"
+delay_time:depends("enable_switch", "1")
+delay_time.default = 600
+
+check_timeout = s:taboption("basic", Value, "check_timeout", translate("Check Timout(second)"))
+check_timeout.datatype = "uinteger"
+check_timeout:depends("enable_switch", "1")
+check_timeout.default = 3
 
 proxy_mode = s:taboption("basic",ListValue, "proxy_mode", translate("Proxy Mode"))
 proxy_mode:value("M", translate("Base on GFW-List Auto Proxy Mode(Recommend)"))
@@ -82,69 +170,82 @@ safe_dns_tcp.rmempty = false
 
 
 
-s:tab("main",  translate("Server Setting"))
 
-server = s:taboption("main",Value, "server", translate("Server Address"))
-server.optional = false
-server.datatype = "host"
-server.rmempty = false
+-- [[ test Setting ]]--
+-- s:tab("test",  translate("test Setting"))
 
-server_port = s:taboption("main",Value, "server_port", translate("Server Port"))
-server_port.datatype = "range(1,65535)"
-server_port.optional = false
-server_port.rmempty = false
 
-password = s:taboption("main",Value, "password", translate("Password"))
-password.password = true
-
-method = s:taboption("main",ListValue, "method", translate("Encryption Method"))
-method:value("none")
-method:value("aes-128-ctr")
-method:value("aes-192-ctr")
-method:value("aes-256-ctr")
-method:value("aes-128-cfb")
-method:value("aes-192-cfb")
-method:value("aes-256-cfb")
-method:value("rc4")
-method:value("rc4-md5")
-method:value("rc4-md5-6")
-method:value("salsa20")
-method:value("chacha20")
-method:value("chacha20-ietf")
-
-protocol = s:taboption("main",ListValue, "protocol", translate("Protocol"))
-protocol:value("origin")
-protocol:value("verify_deflate")
-protocol:value("auth_sha1_v4")
-protocol:value("auth_aes128_md5")
-protocol:value("auth_aes128_sha1")
-protocol:value("auth_chain_a")
-protocol:value("auth_chain_b")
-protocol:value("auth_chain_c")
-protocol:value("auth_chain_d")
-
-obfs = s:taboption("main",ListValue, "obfs", translate("Obfs Param"))
-obfs:value("plain")
-obfs:value("http_simple")
-obfs:value("http_post")
-obfs:value("random_head")
-obfs:value("tls1.2_ticket_auth")
-obfs:value("tls1.2_ticket_fastauth")
-
-plugin_param = s:taboption("main",Flag, "plugin_param", translate("Plug-in parameters"),
-	translate("Incorrect use of this parameter will cause IP to be blocked. Please use it with care"))
-plugin_param:depends("obfs", "http_simple")
-plugin_param:depends("obfs", "http_post")
-plugin_param:depends("obfs", "tls1.2_ticket_auth")
-plugin_param:depends("obfs", "tls1.2_ticket_fastauth")
-
-obfs_param = s:taboption("main",Value, "obfs_param", translate("Confusing plug-in parameters"))
-obfs_param.rmempty = true
-obfs_param.datatype = "host"
-obfs_param:depends("plugin_param", "1")
+-- switch = s:taboption("test",Flag, "a", translate("Enable"))
+-- switch.rmempty = false
 
 
 
+
+-- [[ Servers Setting ]]--
+-- s:tab("main",  translate("Servers Setting"))
+
+-- server = s:taboption("main", Value, "server", translate("Server Address"))
+-- server.optional = false
+-- server.datatype = "host"
+-- server.rmempty = false
+
+
+-- server_port = s:taboption("main", Value, "server_port", translate("Server Port"))
+-- server_port.datatype = "range(1,65535)"
+-- server_port.optional = false
+-- server_port.rmempty = false
+
+-- password = s:taboption("main", Value, "password", translate("Password"))
+-- password.password = true
+
+-- method = s:taboption("main", ListValue, "method", translate("Encryption Method"))
+-- method:value("none")
+-- method:value("aes-128-ctr")
+-- method:value("aes-192-ctr")
+-- method:value("aes-256-ctr")
+-- method:value("aes-128-cfb")
+-- method:value("aes-192-cfb")
+-- method:value("aes-256-cfb")
+-- method:value("rc4")
+-- method:value("rc4-md5")
+-- method:value("rc4-md5-6")
+-- method:value("salsa20")
+-- method:value("chacha20")
+-- method:value("chacha20-ietf")
+
+-- protocol = s:taboption("main", ListValue, "protocol", translate("Protocol"))
+-- protocol:value("origin")
+-- protocol:value("verify_deflate")
+-- protocol:value("auth_sha1_v4")
+-- protocol:value("auth_aes128_md5")
+-- protocol:value("auth_aes128_sha1")
+-- protocol:value("auth_chain_a")
+-- protocol:value("auth_chain_b")
+-- protocol:value("auth_chain_c")
+-- protocol:value("auth_chain_d")
+
+-- obfs = s:taboption("main", ListValue, "obfs", translate("Obfs Param"))
+-- obfs:value("plain")
+-- obfs:value("http_simple")
+-- obfs:value("http_post")
+-- obfs:value("random_head")
+-- obfs:value("tls1.2_ticket_auth")
+-- obfs:value("tls1.2_ticket_fastauth")
+
+-- plugin_param = s:taboption("main", Flag, "plugin_param", translate("Plug-in parameters"),
+-- 	translate("Incorrect use of this parameter will cause IP to be blocked. Please use it with care"))
+-- plugin_param:depends("obfs", "http_simple")
+-- plugin_param:depends("obfs", "http_post")
+-- plugin_param:depends("obfs", "tls1.2_ticket_auth")
+-- plugin_param:depends("obfs", "tls1.2_ticket_fastauth")
+
+-- obfs_param = s:taboption("main", Value, "obfs_param", translate("Confusing plug-in parameters"))
+-- obfs_param.rmempty = true
+-- obfs_param.datatype = "host"
+-- obfs_param:depends("plugin_param", "1")
+
+
+-- [[ User-defined GFW-List ]]--
 s:tab("list",  translate("User-defined GFW-List"))
 gfwlist = s:taboption("list", TextValue, "conf")
 gfwlist.description = translate("<br />（!）Note: When the domain name is entered and will automatically merge with the online GFW-List. Please manually update the GFW-List list after applying.")
@@ -159,6 +260,8 @@ end
 
 local addipconf = "/etc/shadowsocksr/addinip.txt"
 
+
+-- [[ GFW-List Add-in IP ]]--
 s:tab("addip",  translate("GFW-List Add-in IP"))
 gfwaddin = s:taboption("addip", TextValue, "addipconf")
 gfwaddin.description = translate("<br />（!）Note: IP add-in to GFW-List. Such as Telegram Messenger")
@@ -171,11 +274,31 @@ gfwaddin.write = function(self, section, value)
 	NXFS.writefile(addipconf, value:gsub("\r\n", "\n"))
 end
 
+-- [[ Status and Tools ]]--
 s:tab("status",  translate("Status and Tools"))
 s:taboption("status", DummyValue,"opennewwindow" , 
-	translate("<input type=\"button\" class=\"cbi-button cbi-button-apply\" value=\"IP111.CN\" onclick=\"window.open('http://www.ip111.cn/')\" />"))
+translate("<input type=\"button\" class=\"cbi-button cbi-button-apply\" value=\"IP111.CN\" onclick=\"window.open('http://www.ip111.cn/')\" />"))
+
+ckgoogle = s:taboption("status", DummyValue, "google", translate("Google Connectivity"))
+ckgoogle.value = translate("Not Checked") 
+ckgoogle.template = "shadowsocksr/check"
+
+-- ckgoogle = s:taboption("status", Button, "google", translate("Google Connectivity"))
+-- ckgoogle.inputtitle = translate("No Check")
+-- ckgoogle.inputstyle = "apply"
+-- ckgoogle.template = "shadowsocksr/check"
+
+-- ckgoogle.write = function()
+-- 	SYS.call("sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1 &")
+-- end
 
 
+
+ckbaidu = s:taboption("status", DummyValue, "baidu", translate("Baidu Connectivity")) 
+ckbaidu.value = translate("Not Checked") 
+ckbaidu.template = "shadowsocksr/check"
+
+-- [[ Watchdog Log ]]--
 s:tab("watchdog",  translate("Watchdog Log"))
 log = s:taboption("watchdog", TextValue, "sylogtext")
 log.template = "cbi/tvalue"
@@ -184,7 +307,7 @@ log.wrap = "off"
 log.readonly="readonly"
 
 function log.cfgvalue(self, section)
-  SYS.exec("[ -f /tmp/shadowsocksr_watchdog.log ] && sed '1!G;h;$!d' /tmp/shadowsocksr_watchdog.log > /tmp/ssrpro.log")
+  SYS.exec("[ -f /tmp/ssr-switch.log ] && sed '1!G;h;$!d' /tmp/ssr-switch.log > /tmp/ssrpro.log")
 	return nixio.fs.readfile(dog)
 end
 
