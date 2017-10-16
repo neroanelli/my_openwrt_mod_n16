@@ -1,0 +1,25 @@
+<%#
+ Copyright 2016 Chen RuiWei <crwbak@gmail.com>
+ Licensed to the public under the Apache License 2.0.
+-%>
+
+<% include("cbi/map") %>
+<script type="text/javascript">//<![CDATA[
+	XHR.poll(6, '<%=luci.dispatcher.build_url("admin", "services", "shadowsocksr", "server_status")%>', null,
+		function(x, data)
+		{
+			for( i = 0; i < data.length; i++ )
+			{
+				var section = data[i].section	// Section to handle
+				var cbx = document.getElementById("cbi-shadowsocksr-" + section + "-status");		// Enabled
+				var ping = document.getElementById("cbi-shadowsocksr-" + section + "-ping");
+				// var btn = document.getElementById("cbid.shadowsocksr." + section + "._startstop");	// Start/Stop button
+
+				 cbx.innerHTML = data[i].status?'<b><font color=green>OK</font></b>':'<b><font color=red>Error</font></b>';
+				 ping.innerHTML = (parseFloat(data[i].ping) *1000).toFixed(2)+"ms"
+				//status[0].innerHTML = result.shadowsocksr?'<b><font color=green>ShadowsocksR is Running</font></b>':'<b><font color=red>ShadowsocksR is Not Running</font></b>';
+			}
+		}
+	);
+//]]>
+</script>

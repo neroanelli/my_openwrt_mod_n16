@@ -1,9 +1,8 @@
--- Copyright (C) 2017 yushi studio <ywb94@qq.com> github.com/ywb94
+-- Copyright (C) 2017 by Sil
 -- Licensed to the public under the GNU General Public License v3.
 
 local m, s, o, plugin_param, obfs_param
 local uci = luci.model.uci.cursor()
-local ipkg = require("luci.model.ipkg")
 local fs = require "nixio.fs"
 local sys = require "luci.sys"
 local sid = arg[1]
@@ -63,7 +62,7 @@ obfs = {
 
 m = Map("shadowsocksr", translate("Edit ShadowSocksR Server"))
 m.redirect = luci.dispatcher.build_url("admin/services/shadowsocksr")
-
+m.description = translate("A fast secure tunnel proxy that help you get through firewalls on your router")
 if sid == nil or m.uci:get("shadowsocksr", sid) ~= "servers" then
 	-- luci.http.redirect(m.redirect) 
 	-- return
@@ -75,8 +74,13 @@ if sid == nil or m.uci:get("shadowsocksr", sid) ~= "servers" then
 	end
 	end)
 
--- [[ addon Servers Setting ]]--
 
+a = m:section( SimpleSection )
+a.template = "shadowsocksr/server_status"
+
+
+-- [[ addon Servers Setting ]]--
+	
 	sec = m:section(TypedSection, "servers", translate("Servers"))
 	sec.anonymous = true
 	sec.addremove = true
@@ -102,10 +106,10 @@ if sid == nil or m.uci:get("shadowsocksr", sid) ~= "servers" then
 		return Value.cfgvalue(...) or "?"
 	end
 	
-	o = sec:option(DummyValue, "server_port", translate("Server Port"))
-	function o.cfgvalue(...)
-		return Value.cfgvalue(...) or "?"
-	end
+	-- o = sec:option(DummyValue, "server_port", translate("Server Port"))
+	-- function o.cfgvalue(...)
+	-- 	return Value.cfgvalue(...) or "?"
+	-- end
 	
 	o = sec:option(DummyValue, "method", translate("Encrypt Method"))
 	function o.cfgvalue(...)
@@ -128,6 +132,11 @@ if sid == nil or m.uci:get("shadowsocksr", sid) ~= "servers" then
 	function o.cfgvalue(...)
 		return Value.cfgvalue(...) or "0"
 	end
+
+	o = sec:option(DummyValue, "status", "Status")
+
+	o = sec:option(DummyValue, "ping", "Ping")
+
 
 
 else

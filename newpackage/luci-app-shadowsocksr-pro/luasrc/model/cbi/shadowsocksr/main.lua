@@ -1,25 +1,25 @@
+-- Copyright (C) 2017 by Sil
+-- Licensed to the public under the GNU General Public License v3.
 
 local fs = require "nixio.fs"
 local NXFS = require "nixio.fs"
 local WLFS = require "nixio.fs"
 local SYS  = require "luci.sys"
 local uci = luci.model.uci.cursor()
-local ND = SYS.exec("cat /etc/gfwlist/china-banned | wc -l")
+local gfw_count = SYS.exec("cat /etc/gfwlist/china-banned | wc -l")
+local ip_count = SYS.exec("cat /etc/shadowsocksr/china-ip.txt | wc -l")
 local conf = "/etc/shadowsocksr/base-gfwlist.txt"
 local watch = "/tmp/shadowsocksr_watchdog.log"
 local dog = "/tmp/ssrpro.log"
 
 local Status
 
-if SYS.call("pidof ssr-redir > /dev/null") == 0 then
-	Status = translate("<strong><font color=\"green\">ShadowsocksR is Running</font></strong>")
-else
-	Status = translate("<strong><font color=\"red\">ShadowsocksR is Not Running</font></strong>")
-end
+Status = translate("<span class=shadowsocksr_status>ShadowsocksR Status</span>")
 
 m = Map("shadowsocksr")
 m.title	= translate("Shadowsocksr Transparent Proxy")
 m.description = translate("A fast secure tunnel proxy that help you get through firewalls on your router")
+m.template="shadowsocksr/status"
 
 local server_table = {}
 
@@ -31,7 +31,6 @@ uci:foreach("shadowsocksr", "servers", function(s)
 	end
 end)
 
-
 s = m:section(TypedSection, "shadowsocksr")
 s.anonymous = true
 s.description = translate(string.format("%s<br /><br />", Status))
@@ -39,6 +38,7 @@ s.description = translate(string.format("%s<br /><br />", Status))
 -- ---------------------------------------------------
 -- [[ Base Setting ]]--
 s:tab("basic",  translate("Base Setting"))
+
 
 switch = s:taboption("basic",Flag, "enabled", translate("Enable"))
 switch.rmempty = false
@@ -77,14 +77,30 @@ proxy_mode:value("G", translate("Global Mode"))
 proxy_mode:value("V", translate("Overseas users watch China video website Mode"))
 
 cronup = s:taboption("basic", Flag, "cron_mode", translate("Auto Update GFW-List"),
-	translate(string.format("GFW-List Lines： <strong><font color=\"blue\">%s</font></strong> Lines", ND)))
+	translate(string.format("GFW-List Lines： <strong><font color=\"blue\">%s</font></strong> Lines", gfw_count)))
 cronup.default = 0
+cronup:depends("proxy_mode", "M")
 cronup.rmempty = false
 
 updatead = s:taboption("basic", Button, "updatead", translate("Manually force update GFW-List"), translate("Note: It needs to download and convert the rules. The background process may takes 60-120 seconds to run. <br / > After completed it would automatically refresh, please do not duplicate click!"))
-updatead.inputtitle = translate("Manually force update GFW-List")
+updatead.inputtitle = translate("Manually update GFW-List")
 updatead.inputstyle = "apply"
+updatead:depends("proxy_mode", "M")
 updatead.write = function()
+	SYS.call("nohup sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1 &")
+end
+
+cn_cronup = s:taboption("basic", Flag, "cn_cron_mode", translate("Auto Update China IP"),
+	translate(string.format("China IP Data Lines： <strong><font color=\"blue\">%s</font></strong> Lines", ip_count)))
+cn_cronup.default = 0
+cn_cronup:depends("proxy_mode", "S")
+cn_cronup.rmempty = false
+
+updateip = s:taboption("basic", Button, "updateip", translate("Manually force update China IP Data"), translate("Note: It needs to download and convert the rules. The background process may takes 60-120 seconds to run. <br / > After completed it would automatically refresh, please do not duplicate click!"))
+updateip.inputtitle = translate("Manually update China IP Data")
+updateip.inputstyle = "apply"
+updateip:depends("proxy_mode", "S")
+updateip.write = function()
 	SYS.call("nohup sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1 &")
 end
 
@@ -119,7 +135,6 @@ safe_dns_tcp.rmempty = false
 --	translate("Enable TCP fast open, only available on kernel > 3.7.0"))
 
 
-
 -- [[ User-defined GFW-List ]]--
 s:tab("list",  translate("User-defined GFW-List"))
 gfwlist = s:taboption("list", TextValue, "conf")
@@ -131,9 +146,11 @@ gfwlist.cfgvalue = function(self, section)
 end
 gfwlist.write = function(self, section, value)
 	NXFS.writefile(conf, value:gsub("\r\n", "\n"))
+	SYS.call("/etc/shadowsocksr/up-gfwlist.sh x> /tmp/gfwupdate.log 2>&1 &")
 end
 
 local addipconf = "/etc/shadowsocksr/addinip.txt"
+
 
 -- [[ GFW-List Add-in IP ]]--
 s:tab("addip",  translate("GFW-List Add-in IP"))
@@ -157,6 +174,13 @@ ckgoogle = s:taboption("status", DummyValue, "google", translate("Google Connect
 ckgoogle.value = translate("Not Checked") 
 ckgoogle.template = "shadowsocksr/check"
 
+ckbaidu = s:taboption("status", DummyValue, "baidu", translate("Baidu Connectivity")) 
+ckbaidu.value = translate("Not Checked") 
+ckbaidu.template = "shadowsocksr/check"
+
+update_gfw=s:taboption("status", DummyValue, "gfw_data", translate("GFW List Data")) 
+update_gfw.template = "shadowsocksr/refresh"
+update_gfw.value =gfw_count .. " " .. translate("Records")
 -- ckgoogle = s:taboption("status", Button, "google", translate("Google Connectivity"))
 -- ckgoogle.inputtitle = translate("No Check")
 -- ckgoogle.inputstyle = "apply"
@@ -166,9 +190,8 @@ ckgoogle.template = "shadowsocksr/check"
 -- 	SYS.call("sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1 &")
 -- end
 
-ckbaidu = s:taboption("status", DummyValue, "baidu", translate("Baidu Connectivity")) 
-ckbaidu.value = translate("Not Checked") 
-ckbaidu.template = "shadowsocksr/check"
+
+
 
 -- [[ Watchdog Log ]]--
 s:tab("watchdog",  translate("Watchdog Log"))
@@ -187,6 +210,8 @@ function log.write(self, section, value)
 	value = value:gsub("\r\n?", "\n")
 	nixio.fs.writefile(dog, value)
 end
+
+
 
 t=m:section(TypedSection,"acl_rule",translate("<strong>Client Proxy Mode Settings</strong>"),
 translate("Proxy mode settings can be set to specific LAN clients ( <font color=blue> No Proxy, Global Proxy, Game Mode</font>) . Does not need to be set by default."))

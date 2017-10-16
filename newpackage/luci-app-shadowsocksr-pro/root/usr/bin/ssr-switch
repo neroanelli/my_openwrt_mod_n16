@@ -36,10 +36,12 @@ CURRENT_SERVER=$DEFAULT_SERVER
 
 check_proxy() {
 	/usr/bin/nc -z -w $check_timeout www.google.com 80
+	#/usr/bin/ssr-check www.google.com 80 $check_timeout 1
 	if [ "$?" == "0" ]; then
 		return 0
   	else
 		/usr/bin/nc -z -w $check_timeout www.baidu.com 80
+		#/usr/bin/ssr-check www.baidu.com 80 $check_timeout 1
 		if [ "$?" == "0" ]; then
 			#echo "server error" 
 	  		return 1
@@ -50,7 +52,7 @@ check_proxy() {
 	fi
 }
 
-test_proxy() {  ####check check
+test_proxy() {  
 	local servername=$(uci_get_by_name $1 server)
 	local serverport=$(uci_get_by_name $1 server_port)
 	ret=$(ping -c 3 $servername  | grep 'loss' | awk -F ',' '{ print $3 }' | awk -F "%" '{ print $1 }') 
@@ -59,19 +61,21 @@ test_proxy() {  ####check check
 	# ipset add ss_spec_wan_ac $servername 2>/dev/null
 	# ret=$?
 	/usr/bin/nc -z -w $check_timeout $servername $serverport
+	#/usr/bin/ssr-check $servername $serverport $check_timeout
 	local ret2=$?
 	# if [ "$ret" = "0" ] ;then
 	# 	ipset del ss_spec_wan_ac $servername 2>/dev/null
 	# fi
 	if [ "$ret2" = "0" ] ;then
-		return 0
+		return 0 #server ok
 	else
-		return 1
+		return 1 #server error
 	fi
 }
 
 search_proxy() {
 	let server_count=server_count+1
+	# EXP1 = "1"  and EXP2
 	[ "$normal_flag" = "1" -a "$server_count" -le "$server_locate" ] && return 0
 	[ "$(uci_get_by_name $1 switch_enable)" != "1"  ]  && return 1
 	[ $ENABLE_SERVER != nil ] && return 0
@@ -81,6 +85,7 @@ search_proxy() {
 	# ipset add ss_spec_wan_ac $servername 2>/dev/null
 	# ret=$?
 	/usr/bin/nc -z -w $check_timeout $servername $serverport
+	#/usr/bin/ssr-check $servername $serverport $check_timeout
 	local ret2=$?
 	# if [ "$ret" = "0" ] ;then
 	# 	ipset del ss_spec_wan_ac $servername 2>/dev/null
@@ -122,7 +127,7 @@ start() {
 				#default server is ok ,switch back
 				CURRENT_SERVER=$DEFAULT_SERVER
 				switch_proxy $CURRENT_SERVER 
-				echo "[$LOGTIME] default server ['$(uci_get_by_name $CURRENT_SERVER alias)'] is up ,switch to default." >> $LOGFILE
+				echo "[$LOGTIME] default server [$(uci_get_by_name $CURRENT_SERVER alias)] is up ,switch to default." >> $LOGFILE
 				logger -t "$NAME" "switch to default ["$(uci_get_by_name $CURRENT_SERVER alias)"] proxy!"
 				continue
 			fi
@@ -134,12 +139,13 @@ start() {
 	
 	if [ "$current_ret" = "1" ] ;then
 		#echo "current error"
-		echo "[$LOGTIME] current server ['$(uci_get_by_name $CURRENT_SERVER alias)'] is down ,switch to others." >> $LOGFILE
+		echo "[$LOGTIME] current server [$(uci_get_by_name $CURRENT_SERVER alias)] is down." >> $LOGFILE
 	 	select_proxy
 		if [ "$ENABLE_SERVER" != nil ] ;then
 			#echo $(uci_get_by_name $new_proxy server)
 			CURRENT_SERVER=$ENABLE_SERVER
 			switch_proxy $CURRENT_SERVER
+			echo "[$LOGTIME] switch to [$(uci_get_by_name $CURRENT_SERVER alias)]." >> $LOGFILE
 			normal_flag=1
 			logger -t "$NAME" "switch proxy ["$(uci_get_by_name $CURRENT_SERVER alias)"] success!"
 			#echo "switch ok"

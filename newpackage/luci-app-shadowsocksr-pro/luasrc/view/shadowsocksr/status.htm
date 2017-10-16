@@ -1,0 +1,16 @@
+<%#
+ Copyright 2016 Chen RuiWei <crwbak@gmail.com>
+ Licensed to the public under the Apache License 2.0.
+-%>
+
+<% include("cbi/map") %>
+<script type="text/javascript">//<![CDATA[
+	XHR.poll(2, '<%=luci.dispatcher.build_url("admin", "services", "shadowsocksr", "status")%>', null,
+		function(x, result)
+		{
+			var status = document.getElementsByClassName('shadowsocksr_status');
+			status[0].innerHTML = result.shadowsocksr?'<b><font color=green>ShadowsocksR is Running</font></b>':'<b><font color=red>ShadowsocksR is Not Running</font></b>';
+		}
+	);
+//]]>
+</script>
