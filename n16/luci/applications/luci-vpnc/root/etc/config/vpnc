@@ -1,6 +1,0 @@
-config vpnc
-	option gateway 'vpn-server.uji.es'
-	option groupid 'UJI'
-	option secret '12345678'
-	option username 'ujiusername'
-	option password 'ujipassword'

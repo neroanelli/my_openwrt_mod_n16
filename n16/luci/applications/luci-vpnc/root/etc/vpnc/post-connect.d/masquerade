@@ -1,3 +1,0 @@
-iptables -A forwarding_rule -o tun0 -j ACCEPT
-iptables -A forwarding_rule -i tun0 -j ACCEPT
-iptables -t nat -A postrouting_rule -o tun0 -j MASQUERADE
