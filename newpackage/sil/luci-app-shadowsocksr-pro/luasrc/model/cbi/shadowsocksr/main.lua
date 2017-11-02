@@ -3,19 +3,18 @@
 
 local fs = require "nixio.fs"
 local NXFS = require "nixio.fs"
+local WLFS = require "nixio.fs"
 local SYS  = require "luci.sys"
 local uci = luci.model.uci.cursor()
 local gfw_count = SYS.exec("cat /etc/gfwlist/china-banned | wc -l")
 local ip_count = SYS.exec("cat /etc/shadowsocksr/china-ip.txt | wc -l")
 local conf = "/etc/shadowsocksr/base-gfwlist.txt"
-local dog = "/tmp/shadowsocksr/switch.log"
+local watch = "/tmp/shadowsocksr_watchdog.log"
+local dog = "/tmp/ssrpro.log"
 
 local Status
-local currentserver
-local currentserver_name
 
 Status = translate("<span class=shadowsocksr_status>ShadowsocksR Status</span>")
-currentserver = string.gsub(luci.sys.exec("cat /tmp/shadowsocksr/currentserver 2>/dev/null"), "^%s*(.-)%s*$", "%1")
 
 m = Map("shadowsocksr")
 m.title	= translate("Shadowsocksr Transparent Proxy")
@@ -32,12 +31,6 @@ uci:foreach("shadowsocksr", "servers", function(s)
 	end
 end)
 
-if (string.len(currentserver)) == 0 then
-	currentserver_name = "empty"
-else
-	currentserver_name = server_table[currentserver]
-end
-
 s = m:section(TypedSection, "shadowsocksr")
 s.anonymous = true
 s.description = translate(string.format("%s<br /><br />", Status))
@@ -50,8 +43,7 @@ s:tab("basic",  translate("Base Setting"))
 switch = s:taboption("basic",Flag, "enabled", translate("Enable"))
 switch.rmempty = false
 
-global_server = s:taboption("basic", ListValue, "global_server", translate("Global Server"),
-	translate(string.format("Current Server is <strong>%s</strong>", currentserver_name)))
+global_server = s:taboption("basic", ListValue, "global_server", translate("Global Server"))
 global_server:value("nil", translate("Disable"))
 for k, v in pairs(server_table) do global_server:value(k, v) end
 global_server.default = "nil"
@@ -84,7 +76,7 @@ proxy_mode:value("S", translate("Bypassing China Manland IP Mode(Be caution when
 proxy_mode:value("G", translate("Global Mode"))
 proxy_mode:value("V", translate("Overseas users watch China video website Mode"))
 
-cronup = s:taboption("basic", Flag, "gfw_cron_mode", translate("Auto Update GFW-List"),
+cronup = s:taboption("basic", Flag, "cron_mode", translate("Auto Update GFW-List"),
 	translate(string.format("GFW-List Lines： <strong><font color=\"blue\">%s</font></strong> Lines", gfw_count)))
 cronup.default = 0
 cronup:depends("proxy_mode", "M")
@@ -95,7 +87,7 @@ updatead.inputtitle = translate("Manually update GFW-List")
 updatead.inputstyle = "apply"
 updatead:depends("proxy_mode", "M")
 updatead.write = function()
-	SYS.call("nohup sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/shadowsocksr/gfwupdate.log 2>&1 &")
+	SYS.call("nohup sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1 &")
 end
 
 cn_cronup = s:taboption("basic", Flag, "cn_cron_mode", translate("Auto Update China IP"),
@@ -109,7 +101,7 @@ updateip.inputtitle = translate("Manually update China IP Data")
 updateip.inputstyle = "apply"
 updateip:depends("proxy_mode", "S")
 updateip.write = function()
-	SYS.call("nohup sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/shadowsocksr/gfwupdate.log 2>&1 &")
+	SYS.call("nohup sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1 &")
 end
 
 safe_dns_tcp = s:taboption("basic",Flag, "safe_dns_tcp", translate("DNS uses TCP"),
@@ -144,18 +136,18 @@ safe_dns_tcp.rmempty = false
 
 
 -- [[ User-defined GFW-List ]]--
--- s:tab("list",  translate("User-defined GFW-List"))
--- gfwlist = s:taboption("list", TextValue, "conf")
--- gfwlist.description = translate("<br />（!）Note: When the domain name is entered and will automatically merge with the online GFW-List. Please manually update the GFW-List list after applying.")
--- gfwlist.rows = 13
--- gfwlist.wrap = "off"
--- gfwlist.cfgvalue = function(self, section)
--- 	return NXFS.readfile(conf) or ""
--- end
--- gfwlist.write = function(self, section, value)
--- 	NXFS.writefile(conf, value:gsub("\r\n", "\n"))
--- 	SYS.call("/etc/shadowsocksr/up-gfwlist.sh x> /tmp/shadowsocksr/gfwupdate.log 2>&1 &")
--- end
+s:tab("list",  translate("User-defined GFW-List"))
+gfwlist = s:taboption("list", TextValue, "conf")
+gfwlist.description = translate("<br />（!）Note: When the domain name is entered and will automatically merge with the online GFW-List. Please manually update the GFW-List list after applying.")
+gfwlist.rows = 13
+gfwlist.wrap = "off"
+gfwlist.cfgvalue = function(self, section)
+	return NXFS.readfile(conf) or ""
+end
+gfwlist.write = function(self, section, value)
+	NXFS.writefile(conf, value:gsub("\r\n", "\n"))
+	SYS.call("/etc/shadowsocksr/up-gfwlist.sh x> /tmp/gfwupdate.log 2>&1 &")
+end
 
 local addipconf = "/etc/shadowsocksr/addinip.txt"
 
@@ -210,7 +202,7 @@ log.wrap = "off"
 log.readonly="readonly"
 
 function log.cfgvalue(self, section)
-  --SYS.exec("[ -f /tmp/shadowsocksr/switch.log ] && sed '1!G;h;$!d' /tmp/shadowsocksr/switch.log > /tmp/shadowsocksr/ssrpro.log")
+  SYS.exec("[ -f /tmp/ssr-switch.log ] && sed '1!G;h;$!d' /tmp/ssr-switch.log > /tmp/ssrpro.log")
 	return nixio.fs.readfile(dog)
 end
 
@@ -248,7 +240,6 @@ e:value("game",translate("Game Mode"))
 -- ---------------------------------------------------
 local apply = luci.http.formvalue("cbi.apply")
 if apply then
-	--os.execute("/etc/init.d/ssrpro restart " .. currentserver .. ">/dev/null 2>&1 &")
 	os.execute("/etc/init.d/ssrpro restart >/dev/null 2>&1 &")
 end
 

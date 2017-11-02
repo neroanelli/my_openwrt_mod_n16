@@ -10,12 +10,8 @@ generate_china_banned()
 			refresh_cmd="wget -O /tmp/gfwlist.b64 http://iytc.net/tools/list.b64 2>/dev/null"
 		fi
 		eval $refresh_cmd
-		if [ "$?" == "0" ]; then
-			cat /tmp/gfwlist.b64 | base64 -d > /tmp/gfwlist.txt
-			rm -f /tmp/gfwlist.b64
-		else
-
-		fi
+		cat /tmp/gfwlist.b64 | base64 -d > /tmp/gfwlist.txt
+		rm -f /tmp/gfwlist.b64
 	fi
 
 	cat /tmp/gfwlist.txt | sort -u |

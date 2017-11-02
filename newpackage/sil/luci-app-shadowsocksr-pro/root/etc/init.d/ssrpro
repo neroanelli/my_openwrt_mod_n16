@@ -15,14 +15,12 @@ CACHE=$CACHEDIR/pdnsd.cache
 SSRCONF=/var/etc/shadowsocksr.json
 CRON_FILE=/etc/crontabs/root
 CONFIGNAME=shadowsocksr
-CURRENTSERVER=/tmp/shadowsocksr/currentserver
 
-
+newserver=$1
 gb_switch_enable=0
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-# $covered_subnets, $local_addresses are not required
-
+	# $covered_subnets, $local_addresses are not required
 covered_subnets=`uci get shadowsocksr.@shadowsocksr[0].covered_subnets 2>/dev/null`
 local_addresses=`uci get shadowsocksr.@shadowsocksr[0].local_addresses 2>/dev/null`
 	# Get LAN settings as default parameters
@@ -38,53 +36,43 @@ __gfwlist_by_mode() {
 	esac
 }
 
-__get_allservers(){ 
-	config_get $1 server
-} 
-
-config_load shadowsocksr 
-servers=$(config_foreach __get_allservers servers)
-
 __get_args() {
-	if [ -z $newserver ] ;then
-		global_server=$(__uci_get_by_type $CONFIGNAME global_server)
+	if [ -z "$newserver" ] ;then
+		global_server=$(uci_get_by_type $CONFIGNAME global_server)
 	else
 		global_server=$newserver
 		gb_switch_enable=1
 	fi
-	cfg_enabled=$(__uci_get_by_type $CONFIGNAME enabled)
-	cfg_local_port=$(__uci_get_by_type $CONFIGNAME local_port)
-	cfg_enable_switch=$(__uci_get_by_type $CONFIGNAME enable_switch)
-	cfg_delay_time=$(__uci_get_by_type $CONFIGNAME delay_time)
-	cfg_check_timeout=$(__uci_get_by_type $CONFIGNAME check_timeout)
-	cfg_safe_dns=$(__uci_get_by_type $CONFIGNAME safe_dns)
-	cfg_safe_dns_port=$(__uci_get_by_type $CONFIGNAME safe_dns_port)
-	cfg_safe_dns_tcp=$(__uci_get_by_type $CONFIGNAME safe_dns_tcp)
-	cfg_proxy_mode=$(__uci_get_by_type $CONFIGNAME proxy_mode)
-	cfg_gfw_cron_mode=$(__uci_get_by_type $CONFIGNAME gfw_cron_mode)
-	cfg_cn_cron_mode=$(__uci_get_by_type $CONFIGNAME cn_cron_mode)
+	cfg_enabled=$(uci_get_by_type $CONFIGNAME enabled)
+	cfg_local_port=$(uci_get_by_type $CONFIGNAME local_port)
+	cfg_enable_switch=$(uci_get_by_type $CONFIGNAME enable_switch)
+	cfg_delay_time=$(uci_get_by_type $CONFIGNAME delay_time)
+	cfg_check_timeout=$(uci_get_by_type $CONFIGNAME check_timeout)
+	cfg_safe_dns=$(uci_get_by_type $CONFIGNAME safe_dns)
+	cfg_safe_dns_port=$(uci_get_by_type $CONFIGNAME safe_dns_port)
+	cfg_safe_dns_tcp=$(uci_get_by_type $CONFIGNAME safe_dns_tcp)
+	cfg_proxy_mode=$(uci_get_by_type $CONFIGNAME proxy_mode)
+	cfg_gfw_cron_mode=$(uci_get_by_type $CONFIGNAME gfw_cron_mode)
+	cfg_cn_cron_mode=$(uci_get_by_type $CONFIGNAME cn_cron_mode)
 	cfg_gfwlist=`__gfwlist_by_mode $cfg_proxy_mode`
-	SS_REDIR_PORT=$cfg_local_port
 
-	vt_server_addr=$(__uci_get_by_name $global_server server)
-	vt_server_port=$(__uci_get_by_name $global_server server_port)
-	vt_switch_enable=$(__uci_get_by_name $global_server switch_enable)
-	vt_fast_open=$(__uci_get_by_name $global_server fast_open)
-	vt_password=$(__uci_get_by_name $global_server password)
-	vt_method=$(__uci_get_by_name $global_server method)
-	vt_protocol=$(__uci_get_by_name $global_server protocol)
-	vt_protoparam=$(__uci_get_by_name $global_server protoparam)
-	vt_obfs=$(__uci_get_by_name $global_server obfs)
-	vt_timeout=$(__uci_get_by_name $global_server timeout)
-	vt_obfs_param=$(__uci_get_by_name $global_server obfs_param)
+	vt_server_addr=$(uci_get_by_name $global_server server)
+	vt_server_port=$(uci_get_by_name $global_server server_port)
+	vt_switch_enable=$(uci_get_by_name $global_server switch_enable)
+	vt_fast_open=$(uci_get_by_name $global_server fast_open)
+	vt_password=$(uci_get_by_name $global_server password)
+	vt_method=$(uci_get_by_name $global_server method)
+	vt_protocol=$(uci_get_by_name $global_server protocol)
+	vt_obfs=$(uci_get_by_name $global_server obfs)
+	vt_timeout=$(uci_get_by_name $global_server timeout)
+	vt_obfs_param=$(uci_get_by_name $global_server obfs_param)
 }
-
-__uci_get_by_name() {
+uci_get_by_name() {
 	local ret=$(uci get $CONFIGNAME.$1.$2 2>/dev/null)
 	echo ${ret:=$3}
 }
 
-__uci_get_by_type() {
+uci_get_by_type() {
 	local index=0
 	if [ -n $4 ]; then
 		index=$4
@@ -97,10 +85,7 @@ __uci_get_by_type() {
 start() {
 	[ "$global_server" = "nil" ] && return 1
 	__get_args
-	if ! test -f "$CURRENTSERVER"; then
-		mkdir -p /tmp/shadowsocksr/
-	fi
-	echo "$global_server" > $CURRENTSERVER
+	SS_REDIR_PORT=$cfg_local_port
 
 	if [ "$cfg_enabled" = 0 ]; then
 		echo "WARNING: Shadowsocksr is disabled."
@@ -142,7 +127,7 @@ start() {
     "local_port": $cfg_local_port,
     "timeout": $vt_timeout,
     "protocol": "$vt_protocol",
-    "protocol_param": "$vt_protoparam",
+    "protocol_param": "",
     "obfs": "$vt_obfs",
     "obfs_param": "$vt_obfs_param",
     "fast_open": $vt_fastopen
@@ -151,87 +136,14 @@ EOF
 	/usr/bin/ssr-redir -u -c $SSRCONF -f $SS_REDIR_PIDFILE || return 1
 
 	# IPv4 firewall rules
-	__add_rule
+	add_rule
   
 	# -----------------------------------------------------------------
-	__set_dnsmasq
-
-	# -----------------------------------------------------------------
-	###### switch server ######
-	if [ $cfg_enable_switch = "1" ] ;then
-		if [ $vt_switch_enable = "1" ] ;then
-			if [ -z $newserver ] ;then
-				service_start /usr/bin/ssr-switch start $cfg_delay_time $cfg_check_timeout
-				gb_switch_enable=1
-			fi
-		fi
-	fi
-# cron jobs
-	[ -z $newserver ] && __add_cron
-}
-
-stop() {
-	# -----------------------------------------------------------------
-	__get_args
-	__reset_dnsmasq $1
-	# --STOP IPv4 firewall---------------------------------------------------------------
-	__del_rule
-	# -----------------------------------------------------------------
-	if [ -f $SS_REDIR_PIDFILE ]; then
-		kill -9 `cat $SS_REDIR_PIDFILE` 2>/dev/null
-		rm -f $SS_REDIR_PIDFILE
-	fi
-	killall -9 ssr-redir 2>/dev/null
-	rm -f $CURRENTSERVER
-	[ -z $newserver ]  && killall -q -9 ssr-switch && __del_cron
-}
-
-restart() {
-	case "$1" in
-		dnsmasq)
-			__get_args
-			[ -z "$cfg_safe_dns" ] && cfg_safe_dns="8.8.8.8"
-			__reset_dnsmasq upgfwlist
-			__set_dnsmasq
-			;;
-		freeze)
-			stop freeze
-			;;
-		*)
-			newserver=$1
-			KEEP_GFWLIST=Y
-			sleep 3
-			stop no_reset_dns
-			start
-	esac
-}
-
-reload() {
-	__get_args
-	KEEP_GFWLIST=Y
-	__del_rule
-	__add_rule
-	if [ "$cfg_safe_dns_tcp" = 1 ]; then
-		__stop_pdnsd
-		__start_pdnsd
-	fi
-}
-
-__reset_dnsmasq(){
-	rm -rf /var/etc/dnsmasq-go.d
-	if [ -f /tmp/dnsmasq.d/dnsmasq-go.conf ]; then
-		rm -f /tmp/dnsmasq.d/dnsmasq-go.conf
-		[ -z $1 ] || [ $1 = freeze ] && /etc/init.d/dnsmasq restart
-	fi
-	__stop_pdnsd
-}
-
-__set_dnsmasq(){
 	mkdir -p /var/etc/dnsmasq-go.d
 	###### Anti-pollution configuration ######
 	if [ -n "$cfg_safe_dns" ]; then
 		if [ "$cfg_safe_dns_tcp" = 1 ]; then
-			__start_pdnsd "$cfg_safe_dns"
+			start_pdnsd "$cfg_safe_dns"
 			awk -vs="127.0.0.1#$PDNSD_LOCAL_PORT" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
 				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
 		else
@@ -260,29 +172,81 @@ EOF
 		/etc/init.d/dnsmasq restart
 	fi
 
+	# -----------------------------------------------------------------
+	###### switch server ######
+	if [ $cfg_enable_switch = "1" ] ;then
+		if [ $vt_switch_enable = "1" ] ;then
+			if [ -z "$newserver" ] ;then
+				service_start /usr/bin/ssr-switch start $cfg_delay_time $cfg_check_timeout
+				gb_switch_enable=1
+			fi
+		fi
+	fi
+# cron jobs
+	#add_cron
+}
+
+stop() {
+  
+	# -----------------------------------------------------------------
+	__get_args
+	SS_REDIR_PORT=$cfg_local_port
+	rm -rf /var/etc/dnsmasq-go.d
+	if [ -f /tmp/dnsmasq.d/dnsmasq-go.conf ]; then
+		rm -f /tmp/dnsmasq.d/dnsmasq-go.conf
+		[ -z $1 ] && /etc/init.d/dnsmasq restart
+	fi
+	stop_pdnsd
+	# --STOP IPv4 firewall---------------------------------------------------------------
+	del_rule
+	# -----------------------------------------------------------------
+	if [ -f $SS_REDIR_PIDFILE ]; then
+		kill -9 `cat $SS_REDIR_PIDFILE`
+		rm -f $SS_REDIR_PIDFILE
+	fi
+	killall -9 ssr-redir 2>/dev/null
+	[ -z "$newserver" ] && killall -q -9 ssr-switch
+	#del_cron
+}
+
+restart() {
+	KEEP_GFWLIST=Y
+	sleep 3
+	stop x
+	start
+}
+
+reload() {
+	__get_args
+	SS_REDIR_PORT=$cfg_local_port
+	KEEP_GFWLIST=Y
+	del_rule
+	add_rule
+	if [ "$cfg_safe_dns_tcp" = 1 ]; then
+		stop_pdnsd
+		start_pdnsd
+	fi
 }
 
 # $1: upstream DNS server
-__gen_cache() {
+gen_cache() {
 	if ! test -f "$CACHE"; then
 		mkdir -p `dirname $CACHE`
-		#echo -n -e "pd13\0\0\0\0" > "$CACHE"
-		dd if=/dev/zero of=$CACHE bs=1 count=4 2> /dev/null
+		echo -n -e "pd13\0\0\0\0" > "$CACHE"
 		chown -R $USER.$GROUP $CACHEDIR
 	fi
 }
-__start_pdnsd() {
+start_pdnsd() {
 	local safe_dns="$1"
 
 	local tcp_dns_list="208.67.222.222,208.67.220.220"
 	[ -n "$safe_dns" ] && tcp_dns_list="$safe_dns,$tcp_dns_list"
 
 	#killall -9 pdnsd 2>/dev/null && sleep 1
-	kill -9 $(cat /var/run/pdnsd.pid) >/dev/null 2>&1
-	__gen_cache
+	kill -9 $(cat /var/run/pdnsd.pid) >/dev/null 2>&1 && mkdir -p /var/etc /var/pdnsd
 	cat > /var/etc/pdnsd.conf <<EOF
 global {
-	perm_cache=1024;
+	perm_cache=off;
 	cache_dir="/var/pdnsd";
 	pid_file = /var/run/pdnsd.pid;
 	run_as="nobody";
@@ -307,6 +271,7 @@ server {
 	purge_cache=off;
 }
 EOF
+	gen_cache
 	/usr/sbin/pdnsd -c /var/etc/pdnsd.conf -d
 
 	# Access TCP DNS server through Shadowsocksr tunnel
@@ -317,7 +282,7 @@ EOF
 	iptables -t nat -I OUTPUT -p tcp --dport 53 -j pdnsd_output
 }
 
-__stop_pdnsd() {
+stop_pdnsd() {
 	if iptables -t nat -F pdnsd_output 2>/dev/null; then
 		while iptables -t nat -D OUTPUT -p tcp --dport 53 -j pdnsd_output 2>/dev/null; do :; done
 		iptables -t nat -X pdnsd_output
@@ -327,110 +292,57 @@ __stop_pdnsd() {
 	rm -f /var/etc/pdnsd.conf
 }
 
-__add_cron() {
+add_cron() {
 	sed -i '/up-gfwlist.sh/d' $CRON_FILE
-	sed -i '/up-chinaip.sh/d' $CRON_FILE
-	sed -i '/switch.log/d' $CRON_FILE
-	[ -z $cfg_gfw_cron_mode ] && cfg_gfw_cron_mode=0
-	[ -z $cfg_cn_cron_mode ] && cfg_cn_cron_mode=0
+	sed -i '/ssr-switch.log/d' $CRON_FILE
 	if [ $cfg_gfw_cron_mode -eq 1 ]; then
-		echo '0 5 * * * /etc/shadowsocksr/up-gfwlist.sh > /tmp/shadowsocksr/gfwupdate.log 2>&1' >> $CRON_FILE	
-	fi
-	if [ $cfg_cn_cron_mode -eq 1 ]; then
-		echo '0 5 * * * /etc/shadowsocksr/up-chinaip.sh > /tmp/shadowsocksr/china-ip-update.log 2>&1' >> $CRON_FILE
+		echo '0 5 * * * /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>&1' >> $CRON_FILE	
 	fi
 	#echo '0 */1 * * * /etc/shadowsocksr/ssr-watchdog >> /tmp/shadowsocksr_watchdog.log 2>&1' >> $CRON_FILE
-	echo '0 1 * * 0 echo "" > /tmp/shadowsocksr/switch.log' >> $CRON_FILE
+	echo '0 1 * * 0 echo "" > /tmp/ssr-switch.log' >> $CRON_FILE
 	crontab $CRON_FILE
 }
 
-__del_cron() {
+del_cron() {
 	sed -i '/up-gfwlist.sh/d' $CRON_FILE
-	sed -i '/up-chinaip.sh/d' $CRON_FILE
-	sed -i '/switch.log/d' $CRON_FILE
+	sed -i '/ssr-switch.log/d' $CRON_FILE
 	/etc/init.d/cron restart
 }
 
-__gen_localbypass_ip() {
-	cat <<-EOF | grep -E "^([0-9]{1,3}\.){3}[0-9]{1,3}"
-		0.0.0.0/8
-		10.0.0.0/8
-		100.64.0.0/10
-		127.0.0.0/8
-		169.254.0.0/16
-		172.16.0.0/12
-		192.0.0.0/24
-		192.0.2.0/24
-		192.31.196.0/24
-		192.52.193.0/24
-		192.88.99.0/24
-		192.168.0.0/16
-		192.175.48.0/24
-		198.18.0.0/15
-		198.51.100.0/24
-		203.0.113.0/24
-		224.0.0.0/4
-		240.0.0.0/4
-		255.255.255.255
-		$vt_server_addr
-EOF
-}
 
-
-
-__add_rule() {
-
-	ipset -! create localbypass hash:net family inet hashsize 1024 maxelem 65536 2>/dev/null
-	ipset -! restore <<-EOF
-	$(__gen_localbypass_ip | sed -e "s/^/add localbypass /")
-EOF
-	
-	ipset -! create $vt_np_ipset hash:net family inet hashsize 1024 maxelem 65536 2>/dev/null
-	awk '!/^$/&&!/^#/{printf("add china-ip %s'" "'\n",$0)}' /etc/shadowsocksr/$vt_np_ipset.txt > /tmp/shadowsocksr/$vt_np_ipset.ipset
+add_rule() {
+	ipset -! create china-ip hash:net family inet hashsize 1024 maxelem 65536 2>/dev/null
+	awk '!/^$/&&!/^#/{printf("add china-ip %s'" "'\n",$0)}' /etc/shadowsocksr/china-ip.txt > /tmp/china-ip.ipset
 	#sed -i "s/cfg_gfwlist/$cfg_gfwlist/g" /tmp/addinip.ipset
-	ipset -! restore < /tmp/shadowsocksr/$vt_np_ipset.ipset
-	##add PREROUTING IPTABLES RULES
+	ipset -! restore < /tmp/china-ip.ipset
+	
 	iptables -t nat -N shadowsocksr_pre
 	iptables -t nat -F shadowsocksr_pre
-	iptables -t nat -A shadowsocksr_pre -m set --match-set localbypass dst -j RETURN
-	#iptables -t nat -A shadowsocksr_pre -d $vt_server_addr -j RETURN
-	for server in $servers; do
-		iptables -t nat -A shadowsocksr_pre -d $server -j RETURN
-	done
-
-
-	##add OUTPUT IPTABLES RULES
-	iptables -t nat -N shadowsocksr_opt
-	iptables -t nat -F shadowsocksr_opt
-	iptables -t nat -A shadowsocksr_opt -m set --match-set localbypass dst -j RETURN
-	#iptables -t nat -A shadowsocksr_opt -d $vt_server_addr -j RETURN
-	for server in $servers; do
-		iptables -t nat -A shadowsocksr_opt -d $server -j RETURN
-	done
-
+	iptables -t nat -A shadowsocksr_pre -d 10.0.0.0/8 -j RETURN
+	iptables -t nat -A shadowsocksr_pre -d 127.0.0.0/8 -j RETURN
+	iptables -t nat -A shadowsocksr_pre -d 172.16.0.0/12 -j RETURN
+	iptables -t nat -A shadowsocksr_pre -d 192.168.0.0/16 -j RETURN
+	iptables -t nat -A shadowsocksr_pre -d 224.0.0.0/3 -j RETURN
+	iptables -t nat -A shadowsocksr_pre -d $vt_server_addr -j RETURN
+	
 	iptables -N gameboost -t mangle
 	ipset -! create gameuser hash:ip maxelem 65536 2>/dev/null
 	/usr/sbin/ip rule add fwmark 0x01/0x01 table 100
 	/usr/sbin/ip route add local 0.0.0.0/0 dev lo table 100
+	iptables -t mangle -A gameboost -p udp -d 10.0.0.0/8 -j RETURN
+	iptables -t mangle -A gameboost -p udp -d 127.0.0.0/8 -j RETURN
+	iptables -t mangle -A gameboost -p udp -d 172.16.0.0/12 -j RETURN
+	iptables -t mangle -A gameboost -p udp -d 192.168.0.0/16 -j RETURN
+	iptables -t mangle -A gameboost -p udp -d 224.0.0.0/3 -j RETURN
 	
-	iptables -t mangle -A gameboost -p udp -m set --match-set localbypass dst -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 0.0.0.0/8 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 10.0.0.0/8 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 127.0.0.0/8 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 169.254.0.0/16 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 172.16.0.0/12 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 192.168.0.0/16 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 224.0.0.0/3 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 240.0.0.0/4 -j RETURN
-	
-	iptables -t mangle -A gameboost -p udp -m set --match-set $vt_np_ipset dst -j RETURN
+	iptables -t mangle -A gameboost -p udp -m set --match-set china-ip dst -j RETURN
 	iptables -t mangle -A gameboost -p udp --dport 53 -j RETURN
 	iptables -t mangle -A gameboost -p udp -j TPROXY --on-port 7070 --tproxy-mark 0x01/0x01
 	iptables -t mangle -A PREROUTING -m set --match-set gameuser src -j gameboost 
 	for i in $(seq 0 100)
 	do
-		local ip=$(__uci_get_by_type acl_rule ipaddr '' $i)
-		local mode=$(__uci_get_by_type acl_rule filter_mode '' $i)
+		local ip=$(uci_get_by_type acl_rule ipaddr '' $i)
+		local mode=$(uci_get_by_type acl_rule filter_mode '' $i)
 		case "$mode" in
 		disable)
 			iptables -t nat -A shadowsocksr_pre -s $ip -j RETURN
@@ -440,7 +352,7 @@ EOF
 			iptables -t nat -A shadowsocksr_pre -s $ip -j RETURN 
 			;;
 		game)
-			iptables -t nat -A shadowsocksr_pre -p tcp -s $ip -m set ! --match-set $vt_np_ipset dst -j REDIRECT --to $SS_REDIR_PORT
+			iptables -t nat -A shadowsocksr_pre -p tcp -s $ip -m set ! --match-set china-ip dst -j REDIRECT --to $SS_REDIR_PORT
 			ipset -! add gameuser $ip
 			;;
 		esac
@@ -449,17 +361,16 @@ EOF
 		G) : ;;
 		S)
 			iptables -t nat -A shadowsocksr_pre -m set --match-set $vt_np_ipset dst -j RETURN
-			iptables -t nat -A shadowsocksr_opt -p tcp -m multiport --dports 80,443 -m set ! --match-set $vt_np_ipset dst -j REDIRECT --to $SS_REDIR_PORT
+			iptables -t nat -I OUTPUT -p tcp -m multiport --dports 80,443 -m set ! --match-set $vt_np_ipset dst -j REDIRECT --to $SS_REDIR_PORT
 			;;
 		M)
 			ipset -! create $cfg_gfwlist hash:ip maxelem 65536 2>/dev/null
-			awk '!/^$/&&!/^#/{printf("add cfg_gfwlist %s'" "'\n",$0)}' /etc/shadowsocksr/addinip.txt > /tmp/shadowsocksr/addinip.ipset
-			sed -i "s/cfg_gfwlist/$cfg_gfwlist/g" /tmp/shadowsocksr/addinip.ipset
-			ipset -! restore < /tmp/shadowsocksr/addinip.ipset
-
+			awk '!/^$/&&!/^#/{printf("add cfg_gfwlist %s'" "'\n",$0)}' /etc/shadowsocksr/addinip.txt > /tmp/addinip.ipset
+			sed -i "s/cfg_gfwlist/$cfg_gfwlist/g" /tmp/addinip.ipset
+			ipset -! restore < /tmp/addinip.ipset
 			iptables -t nat -A shadowsocksr_pre -m set ! --match-set $cfg_gfwlist dst -j RETURN
 			iptables -t nat -A shadowsocksr_pre -m set --match-set $vt_np_ipset dst -j RETURN
-			iptables -t nat -A shadowsocksr_opt -p tcp -m multiport --dports 80,443 -m set --match-set $cfg_gfwlist dst -j REDIRECT --to $SS_REDIR_PORT
+			iptables -t nat -I OUTPUT -p tcp -m multiport --dports 80,443 -m set --match-set $cfg_gfwlist dst -j REDIRECT --to $SS_REDIR_PORT
 			;;
 		V)
 			vt_np_ipset=""
@@ -471,41 +382,25 @@ EOF
 	for subnet in $covered_subnets; do
 		iptables -t nat -A shadowsocksr_pre -s $subnet -p tcp -j REDIRECT --to $SS_REDIR_PORT
 	done
-		#确保添加到KOOLPROXY规则之后
-	PR_NU=`iptables -nvL PREROUTING -t nat |sed 1,2d | sed -n '/KOOLPROXY/='`
-	if [ -z "$PR_NU" ]; then
-		PR_NU=1
-	else
-		let PR_NU+=1
-	fi
-
-	iptables -t nat -I OUTPUT -p tcp -j shadowsocksr_opt
-	iptables -t nat -I PREROUTING $PR_NU -p tcp -j shadowsocksr_pre
+	iptables -t nat -I PREROUTING -p tcp -j shadowsocksr_pre
 }
 
-__del_rule() {
+del_rule() {
 	if iptables -t nat -F shadowsocksr_pre 2>/dev/null; then
 		while iptables -t nat -D PREROUTING -p tcp -j shadowsocksr_pre 2>/dev/null; do :; done
 		iptables -t nat -X shadowsocksr_pre 2>/dev/null
 	fi
-	if iptables -t nat -F shadowsocksr_opt 2>/dev/null; then
-		while iptables -t nat -D OUTPUT -p tcp -j shadowsocksr_opt 2>/dev/null; do :; done
-		iptables -t nat -X shadowsocksr_opt 2>/dev/null
-	fi	
 	
-	# iptables -t nat -D OUTPUT -d $vt_server_addr -j RETURN
-	# iptables -t nat -D OUTPUT -p tcp -m set --match-set localbypass dst -j RETURN
-	# iptables -t nat -D OUTPUT -p tcp -m multiport --dports 80,443 -m set --match-set $cfg_gfwlist dst -j REDIRECT --to $SS_REDIR_PORT 2>/dev/null
-	# iptables -t nat -D OUTPUT -p tcp -m multiport --dports 80,443 -m set ! --match-set $vt_np_ipset dst -j REDIRECT --to $SS_REDIR_PORT 2>/dev/null
+	iptables -t nat -D OUTPUT -p tcp -m multiport --dports 80,443 -m set --match-set $cfg_gfwlist dst -j REDIRECT --to $SS_REDIR_PORT 2>/dev/null
+	iptables -t nat -D OUTPUT -p tcp -m multiport --dports 80,443 -m set ! --match-set $vt_np_ipset dst -j REDIRECT --to $SS_REDIR_PORT 2>/dev/null
 	
-	/usr/sbin/ip rule del fwmark 0x01/0x01 table 100 2>/dev/null
-	/usr/sbin/ip route del local 0.0.0.0/0 dev lo table 100 2>/dev/null
+	/usr/sbin/ip rule del fwmark 0x01/0x01 table 100
+	/usr/sbin/ip route del local 0.0.0.0/0 dev lo table 100
 	if iptables -t mangle -F gameboost 2>/dev/null; then
 		while iptables -t mangle -D PREROUTING -m set --match-set gameuser src -j gameboost 2>/dev/null; do :; done
 		iptables -t mangle -X gameboost 2>/dev/null
 	fi
 
-	ipset destroy localbypass 2>/dev/null
 	ipset destroy china-ip 2>/dev/null
 	ipset destroy gameuser 2>/dev/null
 
