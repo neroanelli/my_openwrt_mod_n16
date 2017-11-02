@@ -1,6 +1,6 @@
 -- Copyright (C) 2017 by Sil
 -- Licensed to the public under the GNU General Public License v3.
-
+local uci = luci.model.uci.cursor()
 module("luci.controller.shadowsocksr", package.seeall)
 function index()
 	if not nixio.fs.access("/etc/config/shadowsocksr") then
@@ -28,10 +28,10 @@ function check_status()
 	-- if  para == "baidu" then
 	-- 	webaddr = "www.baidu.com"
 	-- end
-	--local set ="/usr/bin/ssr-check www." .. luci.http.formvalue("set") .. ".com 80 3 1"
 	--local set ="/usr/bin/wget --spider --quiet --tries=5 --timeout=3 www.gstatic.com/generate_204"
-	local set ="/usr/bin/nc -z -w3 www." .. para .. ".com 80"
+	--local set ="/usr/bin/nc -z -w3 www." .. para .. ".com 80"
 	--local set ="/usr/bin/ssr-check www." .. para .. ".com 80 3 1"
+	local set ="curl -m 3 -o /dev/null -s www." .. para .. ".com:80"
 	sret=luci.sys.call(set)
 	if sret == 0 then
  		retstring ="0"
@@ -44,8 +44,27 @@ end
 
 
 function act_status()
-	local e={}
+	local currentserver = ""
+	local shadowsocksr = "shadowsocksr"
+	local currentserver_name = ""
+	local server_table = {}
+	local e= {}
+	uci:foreach(shadowsocksr, "servers", function(s)
+		if s.alias then
+			server_table[s[".name"]] = s.alias
+		elseif s.server and s.server_port then
+			server_table[s[".name"]] = "%s:%s" %{s.server, s.server_port}
+		end
+	end)
+	uci:unload(shadowsocksr)
+	currentserver=string.gsub(luci.sys.exec("cat /tmp/shadowsocksr/currentserver 2>/dev/null"), "^%s*(.-)%s*$", "%1")
+	if (string.len(currentserver)) == 0 then
+		currentserver_name = "empty"
+	else
+		currentserver_name = server_table[currentserver]
+	end
 	e.shadowsocksr=luci.sys.call("pidof ssr-redir > /dev/null") == 0
+	e.servername=currentserver_name
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(e)
 end
@@ -54,7 +73,6 @@ function server_status()
 local set=""
 local server_name = ""
 local shadowsocksr = "shadowsocksr"
-local uci = luci.model.uci.cursor()
 local data = {}	-- Array to transfer data to javascript
 
 uci:foreach(shadowsocksr, "servers", function(s)
@@ -75,7 +93,12 @@ uci:foreach(shadowsocksr, "servers", function(s)
 		status = false
 	end
 	--ping = luci.sys.exec("ping -c 1 " .. s.server .. "| grep round-trip | awk -F '/' '{ print $4 }'")
-	ping = luci.sys.exec("curl -o /dev/null -s -w %{time_connect}\\n " .. s.server .. ":" .. s.server_port)
+	if	status then
+		ping = luci.sys.exec("curl -m 1 -o /dev/null -s -w %{time_connect} " .. s.server .. ":" .. s.server_port)
+	else
+		ping = "0.00"
+	end
+
 	data[#data+1]	= {
 		section = section,
 		status  = status,
@@ -94,7 +117,7 @@ function refresh_data()
 	local icount =0
 	
 	if set == "gfw_data" then
-		sret=luci.sys.call("sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/gfwupdate.log 2>/dev/null")
+		sret=luci.sys.call("sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/shadowsocksr/gfwupdate.log 2>/dev/null")
 		if sret== 0 then
 			retstring ="0"
 		else

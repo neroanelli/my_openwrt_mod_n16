@@ -7,7 +7,7 @@ local fs = require "nixio.fs"
 local sys = require "luci.sys"
 local sid = arg[1]
 
-
+local currentserver
 local server_table = {}
 local arp_table = luci.sys.net.arptable() or {}
 local method = {
@@ -49,6 +49,8 @@ local protocol = {
 	"auth_chain_b",
 	"auth_chain_c",
 	"auth_chain_d",
+	"auth_chain_e",
+	"auth_chain_f",
 }
 
 obfs = {
@@ -61,7 +63,7 @@ obfs = {
 }
 
 m = Map("shadowsocksr", translate("Edit ShadowSocksR Server"))
-m.redirect = luci.dispatcher.build_url("admin/services/shadowsocksr")
+m.redirect = luci.dispatcher.build_url("admin/services/shadowsocksr/server")
 m.description = translate("A fast secure tunnel proxy that help you get through firewalls on your router")
 if sid == nil or m.uci:get("shadowsocksr", sid) ~= "servers" then
 	-- luci.http.redirect(m.redirect) 
@@ -74,14 +76,20 @@ if sid == nil or m.uci:get("shadowsocksr", sid) ~= "servers" then
 	end
 	end)
 
-
+currentserver = string.gsub(luci.sys.exec("cat /tmp/shadowsocksr/currentserver 2>/dev/null"), "^%s*(.-)%s*$", "%1")
+if (string.len(currentserver)) == 0 then
+	currentserver_name = "empty"
+else
+	currentserver_name = server_table[currentserver]
+end
 a = m:section( SimpleSection )
 a.template = "shadowsocksr/server_status"
 
 
 -- [[ addon Servers Setting ]]--
 	
-	sec = m:section(TypedSection, "servers", translate("Servers"))
+	sec = m:section(TypedSection, "servers", translate("Servers"), 
+		translate(string.format("Current Server is <strong>%s</strong>", currentserver_name)))
 	sec.anonymous = true
 	sec.addremove = true
 	sec.sortable = true
@@ -121,7 +129,11 @@ a.template = "shadowsocksr/server_status"
 		return Value.cfgvalue(...) or "?"
 	end
 	
-	
+	-- o = sec:option(DummyValue, "protoparam", translate("Protoparam"))
+	-- function o.cfgvalue(...)
+	-- 	return Value.cfgvalue(...) or "?"
+	-- end
+
 	o = sec:option(DummyValue, "obfs", translate("Obfs"))
 	function o.cfgvalue(...)
 		return Value.cfgvalue(...) or "?"
@@ -180,7 +192,15 @@ else
 	o = s:option(ListValue, "protocol", translate("Protocol"))
 	for _, v in ipairs(protocol) do o:value(v) end
 	o.rmempty = false
-	
+
+	protocol_param = s:option(Flag, "protocol_param", translate("Protocol parameters"))
+	--protocol_param.rmempty = false
+
+	protoparam = s:option(Value, "protoparam", translate("Protocol Param"))
+	--o.optional = true
+	protoparam.rmempty = true
+	protoparam.password = true
+	protoparam:depends("protocol_param", "1")
 	
 	o = s:option(ListValue, "obfs", translate("Obfs"))
 	for _, v in ipairs(obfs) do o:value(v) end
@@ -188,6 +208,7 @@ else
 	
 	plugin_param = s:option(Flag, "plugin_param", translate("Plug-in parameters"),
 		translate("Incorrect use of this parameter will cause IP to be blocked. Please use it with care"))
+	plugin_param.rmempty = true
 	plugin_param:depends("obfs", "http_simple")
 	plugin_param:depends("obfs", "http_post")
 	plugin_param:depends("obfs", "tls1.2_ticket_auth")
@@ -195,7 +216,6 @@ else
 	
 	obfs_param = s:option(Value, "obfs_param", translate("Confusing plug-in parameters"))
 	obfs_param.rmempty = true
-	obfs_param.datatype = "host"
 	obfs_param:depends("plugin_param", "1")
 	
 	o = s:option(Flag, "fast_open", translate("TCP Fast Open"))

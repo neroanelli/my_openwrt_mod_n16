@@ -1,26 +1,30 @@
 #!/bin/sh
 
-
-wget -O- 'http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest' | awk -F\| '/CN\|ipv4/ { printf("%s/%d\n", $4, 32-log($5)/log(2)) }' > /tmp/china-ip.txt
-
-	if [ -s "/tmp/china-ip.txt" ];then
-		if ( ! cmp -s /tmp/china-ip.txt /etc/shadowsocksr/china-ip.txt );then
-			if [ -s "/tmp/china-ip.txt" ];then
-				mv /tmp/china-ip.txt /etc/shadowsocksr/china-ip.txt
-				awk '!/^$/&&!/^#/{printf("add china-ip %s'" "'\n",$0)}' /etc/shadowsocksr/china-ip.txt > /tmp/china-ip.ipset
-				ipset destroy chinaip 2>/dev/null
-				ipset -! create chinaip hash:net family inet hashsize 1024 maxelem 65536 2>/dev/null
-				#sed -i "s/cfg_gfwlist/$cfg_gfwlist/g" /tmp/addinip.ipset
-				ipset -! restore < /tmp/china-ip.ipset
-				echo "Update China IP Data Done!"
-				flag=1
-			fi
+online_list=/tmp/shadowsocksr/china-ip.txt
+original_list=/etc/shadowsocksr/china-ip.txt
+temp_list=/tmp/china-ip.ipset
+wget -O- 'http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest' | awk -F\| '/CN\|ipv4/ { printf("%s/%d\n", $4, 32-log($5)/log(2)) }' > $online_list
+if [ "$?" == "0" ]; then
+	if [ -s $online_list ];then
+		if ( ! cmp -s $online_list $original_list );then
+			mv $online_list $original_list
+			awk '!/^$/&&!/^#/{printf("add china-ip %s'" "'\n",$0)}' $original_list > $temp_list
+			ipset destroy china-ip 2>/dev/null
+			ipset -! create china-ip hash:net family inet hashsize 1024 maxelem 65536 2>/dev/null
+			#sed -i "s/cfg_gfwlist/$cfg_gfwlist/g" /tmp/addinip.ipset
+			ipset -! restore < $temp_list
+			echo "Update China IP Data Done!"
+			flag=1
 		else
 			echo "China IP Data No Change!"
 			flag=0
 		fi
 	fi
-	rm -f /tmp/china-ip.txt
+	rm -f $online_list
+	rm -f $temp_list
+else
+	echo "Download China IP Data failed."
+fi
 
 
 # mode=$1
