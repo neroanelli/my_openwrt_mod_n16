@@ -93,12 +93,16 @@ uci:foreach(shadowsocksr, "servers", function(s)
 		status = false
 	end
 	--ping = luci.sys.exec("ping -c 1 " .. s.server .. "| grep round-trip | awk -F '/' '{ print $4 }'")
+<<<<<<< HEAD
 	if	status then
 		ping = luci.sys.exec("curl -m 1 -o /dev/null -s -w %{time_connect} " .. s.server .. ":" .. s.server_port)
 	else
 		ping = "0.00"
 	end
 
+=======
+	ping = luci.sys.exec("curl -m 3 -o /dev/null -s -w %{time_connect} " .. s.server .. ":" .. s.server_port)
+>>>>>>> dd5816346ec44050d8b002599aece2f5903f1cc2
 	data[#data+1]	= {
 		section = section,
 		status  = status,
