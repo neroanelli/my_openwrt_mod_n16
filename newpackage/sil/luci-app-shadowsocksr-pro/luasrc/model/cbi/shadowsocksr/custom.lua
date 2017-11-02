@@ -7,7 +7,8 @@ local WLFS = require "nixio.fs"
 local SYS  = require "luci.sys"
 local uci = luci.model.uci.cursor()
 local gfw_count = SYS.exec("cat /etc/gfwlist/china-banned | wc -l")
-local conf = "/etc/shadowsocksr/user-defined-gfwlist.txt"
+local gfwlistconf = "/etc/shadowsocksr/user-defined-gfwlist.txt"
+local addipconf = "/etc/shadowsocksr/addinip.txt"
 local watch = "/tmp/shadowsocksr_watchdog.log"
 local dog = "/tmp/ssrpro.log"
 
@@ -21,18 +22,19 @@ s.anonymous = true
 
 -- [[ User-defined GFW-List ]]--
 s:tab("list",  translate("User-defined GFW-List"))
-gfwlist = s:taboption("list", TextValue, "conf")
+gfwlist = s:taboption("list", TextValue, "gfwlistconf")
 gfwlist.description = translate("<br />（!）Note: When the domain name is entered and will automatically merge with the online GFW-List. Please manually update the GFW-List list after applying.")
 gfwlist.rows = 13
 gfwlist.wrap = "off"
 gfwlist.cfgvalue = function(self, section)
-	return NXFS.readfile(conf) or ""
+	return NXFS.readfile(gfwlistconf) or ""
 end
 gfwlist.write = function(self, section, value)
-	NXFS.writefile(conf, value:gsub("\r\n", "\n"))
+	NXFS.writefile(gfwlistconf, value:gsub("\r\n", "\n"))
+	SYS.call("/etc/shadowsocksr/up-gfwlist.sh user-defined-gfwlist > /tmp/shadowsocksr/gfwupdate.log 2>&1 &")
 end
 
-local addipconf = "/etc/shadowsocksr/addinip.txt"
+
 
 
 -- [[ GFW-List Add-in IP ]]--
@@ -53,7 +55,7 @@ end
 -- ---------------------------------------------------
 local apply = luci.http.formvalue("cbi.apply")
 if apply then
-	os.execute("sh /etc/shadowsocksr/up-gfwlist.sh >/dev/null 2>&1 &")
+	--os.execute("sh /etc/shadowsocksr/up-gfwlist.sh user-defined-gfwlist >/dev/null 2>&1 &")
 end
 
 return m

@@ -1,106 +1,84 @@
 #!/bin/sh
 
+online_list=/tmp/shadowsocksr/online-gfwlist.txt
+original_list=/etc/shadowsocksr/original-gfwlist.txt
+user_defined_list=/etc/shadowsocksr/user-defined-gfwlist.txt
 mode=$1
+flag=0
+
+generate_china_banned(){
+	
+		cat $1 | base64 -d > /tmp/gfwlist.txt
+		rm -f $1
+
+
+	cat /tmp/gfwlist.txt | sort -u |
+		sed 's#!.\+##; s#|##g; s#@##g; s#http:\/\/##; s#https:\/\/##;' |
+		sed '/\*/d; /apple\.com/d; /sina\.cn/d; /sina\.com\.cn/d; /baidu\.com/d; /byr\.cn/d; /jlike\.com/d; /weibo\.com/d; /zhongsou\.com/d; /youdao\.com/d; /sogou\.com/d; /so\.com/d; /soso\.com/d; /aliyun\.com/d; /taobao\.com/d; /jd\.com/d; /qq\.com/d' |
+		sed '/^[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+$/d' |
+		grep '^[0-9a-zA-Z\.-]\+$' | grep '\.' | sed 's#^\.\+##' | sort -u |
+		awk '
+BEGIN { prev = "________"; }  {
+	cur = $0;
+	if (index(cur, prev) == 1 && substr(cur, 1 + length(prev) ,1) == ".") {
+	} else {
+		print cur;
+		prev = cur;
+	}
+}' | sort -u
+
+}
+
 if [ -z "$mode" ] ;then
-	/etc/shadowsocksr/gen-gfwlist.sh > /tmp/ol-gfw.txt
-	flag=0
-	if [ -s "/tmp/ol-gfw.txt" ];then
-		sort -u /etc/shadowsocksr/base-gfwlist.txt /tmp/ol-gfw.txt > /tmp/china-banned
-		if ( ! cmp -s /tmp/china-banned /etc/gfwlist/china-banned );then
-			if [ -s "/tmp/china-banned" ];then
-				mv /tmp/china-banned /etc/gfwlist/china-banned
-				echo "Update GFW-List Done!"
-				flag=1
+	#update online gfwlist.
+	if [ -x /usr/bin/wget-ssl ]; then
+		refresh_cmd="wget-ssl --no-check-certificate https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt -O /tmp/gfwlist.b64 2>/dev/null"
+	else
+		refresh_cmd="wget -O /tmp/gfwlist.b64 http://iytc.net/tools/list.b64 2>/dev/null"
+	fi
+	eval $refresh_cmd
+	if [ "$?" == "0" ]; then
+		generate_china_banned /tmp/gfwlist.b64 > $online_list
+	fi
+	rm -f /tmp/gfwlist.txt
+	if [ -s $online_list ];then
+		if ( ! cmp -s $online_list $original_list );then
+			mv $online_list $original_list
+			echo "GFW-List updated!"
+			flag=1
+			sort -u $original_list $user_defined_list > /tmp/shadowsocksr/china-banned
+			if ( ! cmp -s /tmp/shadowsocksr/china-banned /etc/gfwlist/china-banned );then
+				if [ -s "/tmp/shadowsocksr/china-banned" ];then
+					mv /tmp/shadowsocksr/china-banned /etc/gfwlist/china-banned
+					echo "Update GFW-List Done!"
+					flag=1
+				fi
+			else
+				echo "GFW-List No Change!"
+				flag=0
 			fi
 		else
 			echo "GFW-List No Change!"
-			flag=0
 		fi
 	fi
-	rm -f /tmp/gfwlist.txt
-	rm -f /tmp/ol-gfw.txt
+		rm -f /tmp/shadowsocksr/gfwlist.txt
+		rm -f /tmp/shadowsocksr/online-gfwlist.txt
 else
-	sort -u /etc/shadowsocksr/base-gfwlist.txt /etc/gfwlist/china-banned > /tmp/china-banned
-	if ( ! cmp -s /tmp/china-banned /etc/gfwlist/china-banned );then
-		if [ -s "/tmp/china-banned" ];then
-			mv /tmp/china-banned /etc/gfwlist/china-banned
+	#update user defined gfwlist.
+	sort -u $original_list $user_defined_list > /tmp/shadowsocksr/china-banned
+	if ( ! cmp -s /tmp/shadowsocksr/china-banned /etc/gfwlist/china-banned );then
+		if [ -s "/tmp/shadowsocksr/china-banned" ];then
+			mv /tmp/shadowsocksr/china-banned /etc/gfwlist/china-banned
 			echo "Update Custom-List Done!"
-			flag=0
-			fi
-		else
-			echo "Custom-List No Change!"
-			flag=0
+			flag=1
+		fi
+	else
+		echo "Custom-List No Change!"
+		flag=0
 	fi
+	rm -f /tmp/shadowsocksr/china-banned
 fi
 
-[ "$flag" = 1 ] && /etc/init.d/dnsmasq restart
+[ "$flag" = 1 ] && /etc/init.d/ssrpro restart dnsmasq
 return $flag
 
-dns_start(){
-	mkdir -p /var/etc/dnsmasq-go.d
-	###### Anti-pollution configuration ######
-	if [ -n "$cfg_safe_dns" ]; then
-		if [ "$cfg_safe_dns_tcp" = 1 ]; then
-			start_pdnsd "$cfg_safe_dns"
-			awk -vs="127.0.0.1#$PDNSD_LOCAL_PORT" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
-				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
-		else
-			awk -vs="$cfg_safe_dns#$cfg_safe_dns_port" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
-				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
-		fi
-	else
-		echo "WARNING: Not using secure DNS, DNS resolution might be polluted if you are in China."
-	fi
-
-	###### dnsmasq-to-ipset configuration ######
-	case "$cfg_proxy_mode" in
-		M|V)
-			awk '!/^$/&&!/^#/{printf("ipset=/%s/'"$cfg_gfwlist"'\n",$0)}' \
-				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/02-ipset.conf
-			;;
-	esac
-
-	# -----------------------------------------------------------------
-	###### Restart main 'dnsmasq' service if needed ######
-	if ls /var/etc/dnsmasq-go.d/* >/dev/null 2>&1; then
-		mkdir -p /tmp/dnsmasq.d
-		cat > /tmp/dnsmasq.d/dnsmasq-go.conf <<EOF
-conf-dir=/var/etc/dnsmasq-go.d
-EOF
-		/etc/init.d/dnsmasq restart
-	fi
-
-
-}
-	mkdir -p /var/etc/dnsmasq-go.d
-	###### Anti-pollution configuration ######
-	if [ -n "$cfg_safe_dns" ]; then
-		if [ "$cfg_safe_dns_tcp" = 1 ]; then
-			start_pdnsd "$cfg_safe_dns"
-			awk -vs="127.0.0.1#$PDNSD_LOCAL_PORT" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
-				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
-		else
-			awk -vs="$cfg_safe_dns#$cfg_safe_dns_port" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
-				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
-		fi
-	else
-		echo "WARNING: Not using secure DNS, DNS resolution might be polluted if you are in China."
-	fi
-
-	###### dnsmasq-to-ipset configuration ######
-	case "$cfg_proxy_mode" in
-		M|V)
-			awk '!/^$/&&!/^#/{printf("ipset=/%s/'"$cfg_gfwlist"'\n",$0)}' \
-				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/02-ipset.conf
-			;;
-	esac
-
-	# -----------------------------------------------------------------
-	###### Restart main 'dnsmasq' service if needed ######
-	if ls /var/etc/dnsmasq-go.d/* >/dev/null 2>&1; then
-		mkdir -p /tmp/dnsmasq.d
-		cat > /tmp/dnsmasq.d/dnsmasq-go.conf <<EOF
-conf-dir=/var/etc/dnsmasq-go.d
-EOF
-		/etc/init.d/dnsmasq restart
-	fi

@@ -98,6 +98,7 @@ uci:foreach(shadowsocksr, "servers", function(s)
 	else
 		ping = "0.00"
 	end
+
 	data[#data+1]	= {
 		section = section,
 		status  = status,
