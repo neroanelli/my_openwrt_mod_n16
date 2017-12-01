@@ -64,6 +64,8 @@ __get_args() {
 	cfg_gfw_cron_mode=$(__uci_get_by_type $CONFIGNAME gfw_cron_mode)
 	cfg_cn_cron_mode=$(__uci_get_by_type $CONFIGNAME cn_cron_mode)
 	cfg_gfwlist=`__gfwlist_by_mode $cfg_proxy_mode`
+	cfg_default_server=$(__uci_get_by_type $CONFIGNAME global_server)
+	cfg_default_server_addr=$(__uci_get_by_name $cfg_default_server server)
 	SS_REDIR_PORT=$cfg_local_port
 
 	vt_server_addr=$(__uci_get_by_name $global_server server)
@@ -95,7 +97,9 @@ __uci_get_by_type() {
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 start() {
+	[ `pidof ssr-redir` ] && return 1
 	[ "$global_server" = "nil" ] && return 1
+	newserver=$1
 	__get_args
 	if ! test -f "$CURRENTSERVER"; then
 		mkdir -p /tmp/shadowsocksr/
@@ -120,7 +124,7 @@ start() {
 	[ -z "$vt_timeout" ] && vt_timeout=60
 	case "$cfg_proxy_mode" in
 		M|S|G)
-			[ -z "$cfg_safe_dns" ] && cfg_safe_dns="8.8.8.8"
+			[ -z "$cfg_safe_dns" ] && cfg_safe_dns="8.8.4.4"  #comment by sil
 			[ -z "$cfg_safe_dns_tcp" ] && cfg_safe_dns_tcp=1
 			;;
 	esac
@@ -161,13 +165,33 @@ EOF
 	if [ $cfg_enable_switch = "1" ] ;then
 		if [ $vt_switch_enable = "1" ] ;then
 			if [ -z $newserver ] ;then
-				#service_start /usr/bin/ssr-switch start $cfg_delay_time $cfg_check_timeout
+				[ `pidof ssr-switch` ] && killall -q -9 ssr-switch
+				service_start /usr/bin/ssr-switch start $cfg_delay_time $cfg_check_timeout
 				gb_switch_enable=1
 			fi
 		fi
 	fi
 # cron jobs
 	[ -z $newserver ] && __add_cron
+}
+
+boot() {
+	# local delay=$(uci_get_by_type general startup_delay 0)
+	# (sleep $delay && start >/dev/null 2>&1) &
+	echo "Check depending interface"
+	oif=wan
+	while true; do
+		oif_status=$(ifstatus ${oif} |awk '/"up"/{print $2}'|cut -d \, -f 1)
+		if [ "$oif_status" == "true" ]; then
+			echo "depending interface $oif is up"
+			break
+		else
+			echo "depending interface $oif is not up"
+			sleep 5
+		fi
+	done
+	sleep 10 && start
+	return 0
 }
 
 stop() {
@@ -182,27 +206,35 @@ stop() {
 		rm -f $SS_REDIR_PIDFILE
 	fi
 	killall -9 ssr-redir 2>/dev/null
+	[ -f $SSRCONF ] && rm -f $SSRCONF
 	rm -f $CURRENTSERVER
-	[ -z $newserver ]  && killall -q -9 ssr-switch && __del_cron
+	[ -z $1 ] && killall -q -9 ssr-switch && __del_cron
 }
 
 restart() {
 	case "$1" in
 		dnsmasq)
 			__get_args
-			[ -z "$cfg_safe_dns" ] && cfg_safe_dns="8.8.8.8"
+			[ -z "$cfg_safe_dns" ] && cfg_safe_dns="8.8.4.4"  #comment by sil
 			__reset_dnsmasq upgfwlist
 			__set_dnsmasq
 			;;
 		freeze)
 			stop freeze
 			;;
-		*)
-			newserver=$1
+		switch)
+			newserver=$2
 			KEEP_GFWLIST=Y
 			sleep 3
 			stop no_reset_dns
-			start
+			start $2
+			;;
+		*)
+			#newserver=$1
+			KEEP_GFWLIST=Y
+			sleep 3
+			stop no_reset_dns
+			start $1
 	esac
 }
 
@@ -221,22 +253,22 @@ __reset_dnsmasq(){
 	rm -rf /var/etc/dnsmasq-go.d
 	if [ -f /tmp/dnsmasq.d/dnsmasq-go.conf ]; then
 		rm -f /tmp/dnsmasq.d/dnsmasq-go.conf
-		[ -z $1 ] || [ $1 = freeze ] && /etc/init.d/dnsmasq restart
+		[ -z $1 ] || [ $1 = freeze ] || [ "$cfg_enabled" = 0 ] && /etc/init.d/dnsmasq restart 
 	fi
-	__stop_pdnsd
+	[ "$cfg_safe_dns_tcp" = 1 ] && __stop_pdnsd
 }
 
 __set_dnsmasq(){
 	mkdir -p /var/etc/dnsmasq-go.d
 	###### Anti-pollution configuration ######
-	if [ -n "$cfg_safe_dns" ]; then
-		if [ "$cfg_safe_dns_tcp" = 1 ]; then
-			__start_pdnsd "$cfg_safe_dns"
+	if [ "$cfg_safe_dns_tcp" = 1 ]; then
+		if [ -n "$cfg_safe_dns" ]; then
+			__start_pdnsd "$cfg_safe_dns"  
 			awk -vs="127.0.0.1#$PDNSD_LOCAL_PORT" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
 				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
-		else
-			awk -vs="$cfg_safe_dns#$cfg_safe_dns_port" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
-				/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
+		# else
+		# 	awk -vs="$cfg_safe_dns#$cfg_safe_dns_port" '!/^$/&&!/^#/{printf("server=/%s/%s\n",$0,s)}' \
+		# 		/etc/gfwlist/$cfg_gfwlist > /var/etc/dnsmasq-go.d/01-pollution.conf
 		fi
 	else
 		echo "WARNING: Not using secure DNS, DNS resolution might be polluted if you are in China."
@@ -263,11 +295,11 @@ EOF
 }
 
 # $1: upstream DNS server
-__gen_cache() {
+__gen_pdnsd_cache() {
 	if ! test -f "$CACHE"; then
 		mkdir -p `dirname $CACHE`
-		#echo -n -e "pd13\0\0\0\0" > "$CACHE"
-		dd if=/dev/zero of=$CACHE bs=1 count=4 2> /dev/null
+		echo -n -e "pd13\0\0\0\0" > "$CACHE"
+		#dd if=/dev/zero of=$CACHE bs=1 count=4 2> /dev/null
 		chown -R $USER.$GROUP $CACHEDIR
 	fi
 }
@@ -279,7 +311,7 @@ __start_pdnsd() {
 
 	#killall -9 pdnsd 2>/dev/null && sleep 1
 	kill -9 $(cat /var/run/pdnsd.pid) >/dev/null 2>&1
-	__gen_cache
+	__gen_pdnsd_cache
 	cat > /var/etc/pdnsd.conf <<EOF
 global {
 	perm_cache=1024;
@@ -391,22 +423,30 @@ EOF
 	ipset -! restore < /tmp/shadowsocksr/$vt_np_ipset.ipset
 	##add PREROUTING IPTABLES RULES
 	iptables -t nat -N shadowsocksr_pre
+	#iptables -t nat -N shadowsocksr_sv_pre
 	iptables -t nat -F shadowsocksr_pre
+	#iptables -t nat -F shadowsocksr_sv_pre
 	iptables -t nat -A shadowsocksr_pre -m set --match-set localbypass dst -j RETURN
-	#iptables -t nat -A shadowsocksr_pre -d $vt_server_addr -j RETURN
-	for server in $servers; do
-		iptables -t nat -A shadowsocksr_pre -d $server -j RETURN
-	done
+	#iptables -t nat -A shadowsocksr_sv_pre -d $vt_server_addr -j RETURN
+	iptables -t nat -A shadowsocksr_pre -d $vt_server_addr -j RETURN
+	[ "$vt_server_addr" != "$cfg_default_server_addr" ] && iptables -t nat -A shadowsocksr_pre -d $cfg_default_server_addr -j RETURN
+	# for server in $servers; do
+	# 	iptables -t nat -A shadowsocksr_pre -d $server -j RETURN
+	# done
 
 
 	##add OUTPUT IPTABLES RULES
 	iptables -t nat -N shadowsocksr_opt
+	#iptables -t nat -N shadowsocksr_sv_opt
 	iptables -t nat -F shadowsocksr_opt
+	#iptables -t nat -F shadowsocksr_sv_opt
 	iptables -t nat -A shadowsocksr_opt -m set --match-set localbypass dst -j RETURN
-	#iptables -t nat -A shadowsocksr_opt -d $vt_server_addr -j RETURN
-	for server in $servers; do
-		iptables -t nat -A shadowsocksr_opt -d $server -j RETURN
-	done
+	#iptables -t nat -A shadowsocksr_sv_opt -d $vt_server_addr -j RETURN
+	iptables -t nat -A shadowsocksr_opt -d $vt_server_addr -j RETURN
+	[ "$vt_server_addr" != "$cfg_default_server_addr" ] && iptables -t nat -A shadowsocksr_opt -d $cfg_default_server_addr -j RETURN
+	# for server in $servers; do
+	# 	iptables -t nat -A shadowsocksr_opt -d $server -j RETURN
+	# done
 
 	iptables -N gameboost -t mangle
 	ipset -! create gameuser hash:ip maxelem 65536 2>/dev/null
@@ -480,7 +520,9 @@ EOF
 	fi
 
 	iptables -t nat -I OUTPUT -p tcp -j shadowsocksr_opt
+	#iptables -t nat -I OUTPUT -p tcp -j shadowsocksr_sv_opt
 	iptables -t nat -I PREROUTING $PR_NU -p tcp -j shadowsocksr_pre
+	#iptables -t nat -I PREROUTING $PR_NU -p tcp -j shadowsocksr_sv_pre
 }
 
 __del_rule() {
@@ -491,13 +533,21 @@ __del_rule() {
 	if iptables -t nat -F shadowsocksr_opt 2>/dev/null; then
 		while iptables -t nat -D OUTPUT -p tcp -j shadowsocksr_opt 2>/dev/null; do :; done
 		iptables -t nat -X shadowsocksr_opt 2>/dev/null
-	fi	
-	
-	# iptables -t nat -D OUTPUT -d $vt_server_addr -j RETURN
-	# iptables -t nat -D OUTPUT -p tcp -m set --match-set localbypass dst -j RETURN
-	# iptables -t nat -D OUTPUT -p tcp -m multiport --dports 80,443 -m set --match-set $cfg_gfwlist dst -j REDIRECT --to $SS_REDIR_PORT 2>/dev/null
-	# iptables -t nat -D OUTPUT -p tcp -m multiport --dports 80,443 -m set ! --match-set $vt_np_ipset dst -j REDIRECT --to $SS_REDIR_PORT 2>/dev/null
-	
+	fi
+	if iptables -t nat -F shadowsocksr_sv_pre 2>/dev/null; then
+		while iptables -t nat -D PREROUTING -p tcp -j shadowsocksr_sv_pre 2>/dev/null; do :; done
+		iptables -t nat -X shadowsocksr_sv_pre 2>/dev/null
+	fi
+	if iptables -t nat -F shadowsocksr_sv_opt 2>/dev/null; then
+		while iptables -t nat -D OUTPUT -p tcp -j shadowsocksr_sv_opt 2>/dev/null; do :; done
+		iptables -t nat -X shadowsocksr_sv_opt 2>/dev/null
+	fi
+
+	if iptables -t nat -F pdnsd_output 2>/dev/null; then
+		while iptables -t nat -D OUTPUT -p tcp --dport 53 -j pdnsd_output 2>/dev/null; do :; done
+		iptables -t nat -X pdnsd_output
+	fi
+
 	/usr/sbin/ip rule del fwmark 0x01/0x01 table 100 2>/dev/null
 	/usr/sbin/ip route del local 0.0.0.0/0 dev lo table 100 2>/dev/null
 	if iptables -t mangle -F gameboost 2>/dev/null; then

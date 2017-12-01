@@ -86,7 +86,7 @@ proxy_mode:value("V", translate("Overseas users watch China video website Mode")
 
 cronup = s:taboption("basic", Flag, "gfw_cron_mode", translate("Auto Update GFW-List"),
 	translate(string.format("GFW-List Lines： <strong><font color=\"blue\">%s</font></strong> Lines", gfw_count)))
-cronup.default = 0
+cronup.default = "1"
 cronup:depends("proxy_mode", "M")
 cronup.rmempty = false
 
@@ -100,7 +100,7 @@ end
 
 cn_cronup = s:taboption("basic", Flag, "cn_cron_mode", translate("Auto Update China IP"),
 	translate(string.format("China IP Data Lines： <strong><font color=\"blue\">%s</font></strong> Lines", ip_count)))
-cn_cronup.default = 0
+cn_cronup.default = "1"
 cn_cronup:depends("proxy_mode", "S")
 cn_cronup.rmempty = false
 
@@ -109,7 +109,7 @@ updateip.inputtitle = translate("Manually update China IP Data")
 updateip.inputstyle = "apply"
 updateip:depends("proxy_mode", "S")
 updateip.write = function()
-	SYS.call("nohup sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/shadowsocksr/gfwupdate.log 2>&1 &")
+	SYS.call("nohup sh /etc/shadowsocksr/up-chinaip.sh > /tmp/shadowsocksr/china-ip-update.log 2>&1 &")
 end
 
 safe_dns_tcp = s:taboption("basic",Flag, "safe_dns_tcp", translate("DNS uses TCP"),
