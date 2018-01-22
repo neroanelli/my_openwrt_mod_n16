@@ -147,7 +147,7 @@ start() {
 			if __check_default_server $DEFAULT_SERVER ;then
 				let ck_times+=1
 				__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP,check times:$ck_times." $LOGFILE
-				if [ $ck_times -ge 3 ]; then
+				if [ $ck_times -ge 5 ]; then
 					ck_times=0
 					CURRENT_SERVER=$DEFAULT_SERVER
 					PASS_SWITCHED=0

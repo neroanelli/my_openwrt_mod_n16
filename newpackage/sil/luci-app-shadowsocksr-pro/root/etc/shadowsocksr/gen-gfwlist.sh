@@ -3,19 +3,9 @@
 generate_china_banned()
 {
 	if [ ! -f /tmp/gfwlist.txt ]; then
-		#wget-ssl --no-check-certificate https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt -O /tmp/gfwlist.b64 >&2
-		if [ -x /usr/bin/wget-ssl ]; then
-			refresh_cmd="wget-ssl --no-check-certificate https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt -O /tmp/gfwlist.b64 2>/dev/null"
-		else
-			refresh_cmd="wget -O /tmp/gfwlist.b64 http://iytc.net/tools/list.b64 2>/dev/null"
-		fi
-		eval $refresh_cmd
-		if [ "$?" == "0" ]; then
-			cat /tmp/gfwlist.b64 | base64 -d > /tmp/gfwlist.txt
-			rm -f /tmp/gfwlist.b64
-		else
-
-		fi
+		wget-ssl --no-check-certificate https://raw.githubusercontent.com/gfwlist/gfwlist/master/gfwlist.txt -O /tmp/gfwlist.b64 >&2
+		cat /tmp/gfwlist.b64 | base64 -d > /tmp/gfwlist.txt
+		rm -f /tmp/gfwlist.b64
 	fi
 
 	cat /tmp/gfwlist.txt | sort -u |

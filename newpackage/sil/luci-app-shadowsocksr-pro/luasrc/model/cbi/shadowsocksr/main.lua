@@ -112,8 +112,8 @@ updateip.write = function()
 	SYS.call("nohup sh /etc/shadowsocksr/up-chinaip.sh > /tmp/shadowsocksr/china-ip-update.log 2>&1 &")
 end
 
-safe_dns_tcp = s:taboption("basic",Flag, "safe_dns_tcp", translate("DNS uses TCP"),
-	translate("Through the server transfer mode inquires DNS pollution prevention (Safer and recommended)"))
+safe_dns_tcp = s:taboption("basic",Flag, "safe_dns_tcp", translate("Pdnsd uses TCP"),
+	translate("Through the server transfer mode inquires DNS pollution prevention (pdnsd,Safer and recommended)"))
 safe_dns_tcp.rmempty = false
 -- safe_dns_tcp:depends("more", "1")
 

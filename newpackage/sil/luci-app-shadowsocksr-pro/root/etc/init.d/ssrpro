@@ -42,10 +42,10 @@ __get_allservers(){
 	config_get $1 server
 } 
 
-config_load shadowsocksr 
-servers=$(config_foreach __get_allservers servers)
-
 __get_args() {
+	
+	config_load shadowsocksr 
+	servers=$(config_foreach __get_allservers servers)
 	if [ -z $newserver ] ;then
 		global_server=$(__uci_get_by_type $CONFIGNAME global_server)
 	else
@@ -255,7 +255,8 @@ __reset_dnsmasq(){
 		rm -f /tmp/dnsmasq.d/dnsmasq-go.conf
 		[ -z $1 ] || [ $1 = freeze ] || [ "$cfg_enabled" = 0 ] && /etc/init.d/dnsmasq restart 
 	fi
-	[ "$cfg_safe_dns_tcp" = 1 ] && __stop_pdnsd
+	[ `pidof pdnsd` ] && __stop_pdnsd
+	#[ "$cfg_safe_dns_tcp" = 1 ] && __stop_pdnsd
 }
 
 __set_dnsmasq(){
@@ -454,15 +455,6 @@ EOF
 	/usr/sbin/ip route add local 0.0.0.0/0 dev lo table 100
 	
 	iptables -t mangle -A gameboost -p udp -m set --match-set localbypass dst -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 0.0.0.0/8 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 10.0.0.0/8 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 127.0.0.0/8 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 169.254.0.0/16 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 172.16.0.0/12 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 192.168.0.0/16 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 224.0.0.0/3 -j RETURN
-	# iptables -t mangle -A gameboost -p udp -d 240.0.0.0/4 -j RETURN
-	
 	iptables -t mangle -A gameboost -p udp -m set --match-set $vt_np_ipset dst -j RETURN
 	iptables -t mangle -A gameboost -p udp --dport 53 -j RETURN
 	iptables -t mangle -A gameboost -p udp -j TPROXY --on-port 7070 --tproxy-mark 0x01/0x01
@@ -541,11 +533,6 @@ __del_rule() {
 	if iptables -t nat -F shadowsocksr_sv_opt 2>/dev/null; then
 		while iptables -t nat -D OUTPUT -p tcp -j shadowsocksr_sv_opt 2>/dev/null; do :; done
 		iptables -t nat -X shadowsocksr_sv_opt 2>/dev/null
-	fi
-
-	if iptables -t nat -F pdnsd_output 2>/dev/null; then
-		while iptables -t nat -D OUTPUT -p tcp --dport 53 -j pdnsd_output 2>/dev/null; do :; done
-		iptables -t nat -X pdnsd_output
 	fi
 
 	/usr/sbin/ip rule del fwmark 0x01/0x01 table 100 2>/dev/null
