@@ -139,7 +139,7 @@ start() {
 		#before=`date +%s`
 		#sleep $delay_time
 		LOGTIME=$(date "+%Y-%m-%d %H:%M:%S")
-		__writelog "[`eval $TIME_STR`]: #CHECK BEGIN#"  $LOGFILE
+		__writelog "[`eval $TIME_STR`]: #CHECK BEGIN -- [$(__uci_get_by_name $CURRENT_SERVER alias)]#"  $LOGFILE
 		#__writelog "[`eval $TIME_STR`]: check server every $delay_time seconds."  $LOGFILE
 		#check if current server is default server
 		if [ "$CURRENT_SERVER" != "$DEFAULT_SERVER" ] ;then
