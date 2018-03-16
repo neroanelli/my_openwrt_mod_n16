@@ -142,22 +142,24 @@ start() {
 		__writelog "[`eval $TIME_STR`]: #CHECK BEGIN -- [$(__uci_get_by_name $CURRENT_SERVER alias)]#"  $LOGFILE
 		#__writelog "[`eval $TIME_STR`]: check server every $delay_time seconds."  $LOGFILE
 		#check if current server is default server
-		if [ "$CURRENT_SERVER" != "$DEFAULT_SERVER" ] ;then
-  		__writelog "[`eval $TIME_STR`]: check if the default server [$DEFAULT_SERVER_ALIAS] is up?" $LOGFILE
-			if __check_default_server $DEFAULT_SERVER ;then
-				let ck_times+=1
-				__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP,check times:$ck_times." $LOGFILE
-				if [ $ck_times -ge 5 ]; then
-					ck_times=0
-					CURRENT_SERVER=$DEFAULT_SERVER
-					PASS_SWITCHED=0
-					__switch_to_default_server $CURRENT_SERVER 
-					__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP ,switch to default." $LOGFILE
-					logger -t "$NAME" "switch to default server [$DEFAULT_SERVER_ALIAS]!"
-					skip_netcheck=1
-				fi
-			else
-				ck_times=0
+		if [ "$CURRENT_SERVER" != "$DEFAULT_SERVER" ] ;then #1、当前服务器不是默认服务器，则检查默认服务器是否正常；2、当前服务器为空，则跳过
+			if [ "$CURRENT_SERVER" != nil ] ; then #当前服务器不为空
+  				__writelog "[`eval $TIME_STR`]: check if the default server [$DEFAULT_SERVER_ALIAS] is up?" $LOGFILE
+					if __check_default_server $DEFAULT_SERVER ;then
+						let ck_times+=1
+						__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP,check times:$ck_times." $LOGFILE
+						if [ $ck_times -ge 5 ]; then
+							ck_times=0
+							CURRENT_SERVER=$DEFAULT_SERVER
+							PASS_SWITCHED=0
+							__switch_to_default_server $CURRENT_SERVER 
+							__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP ,switch to default." $LOGFILE
+							logger -t "$NAME" "switch to default server [$DEFAULT_SERVER_ALIAS]!"
+							skip_netcheck=1
+						fi
+					else
+						ck_times=0
+					fi
 			fi
 		fi
   
@@ -168,7 +170,7 @@ start() {
 		current_ret=$?
 		if [ "$current_ret" = "1" ] ;then
 			[ "$CURRENT_SERVER" != nil ] && __writelog "[`eval $TIME_STR`]: current server [$(__uci_get_by_name $CURRENT_SERVER alias)] is DOWN." $LOGFILE
-			if [ $ck_times -gt 0 ]; then
+			if [ $ck_times -gt 0 ]; then #当前服务器掉线，且不是默认服务器，同时默认服务器已经通过基础检测，则，切换到默认服务器。
 				__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP $ck_times times,switch to default...continue" $LOGFILE
 				$ck_times=0
 				__switch_to_default_server $DEFAULT_SERVER
