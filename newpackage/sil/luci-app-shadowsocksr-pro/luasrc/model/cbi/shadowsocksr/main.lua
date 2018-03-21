@@ -178,13 +178,13 @@ s:tab("status",  translate("Status and Tools"))
 s:taboption("status", DummyValue,"opennewwindow" , 
 translate("<input type=\"button\" class=\"cbi-button cbi-button-apply\" value=\"IP111.CN\" onclick=\"window.open('http://www.ip111.cn/')\" />"))
 
-ckgoogle = s:taboption("status", DummyValue, "google", translate("Google Connectivity"))
-ckgoogle.value = translate("Not Checked") 
-ckgoogle.template = "shadowsocksr/check"
-
 ckbaidu = s:taboption("status", DummyValue, "baidu", translate("Baidu Connectivity")) 
 ckbaidu.value = translate("Not Checked") 
 ckbaidu.template = "shadowsocksr/check"
+
+ckgoogle = s:taboption("status", DummyValue, "google", translate("Google Connectivity"))
+ckgoogle.value = translate("Not Checked") 
+ckgoogle.template = "shadowsocksr/check"
 
 update_gfw=s:taboption("status", DummyValue, "gfw_data", translate("GFW List Data")) 
 update_gfw.template = "shadowsocksr/refresh"

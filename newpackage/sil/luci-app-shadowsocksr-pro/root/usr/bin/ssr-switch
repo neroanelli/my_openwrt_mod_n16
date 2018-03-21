@@ -7,8 +7,8 @@
 delay_time=60    #default second
 check_timeout=3  #default second
 freeze_times=0
-PASS_SWITCHED=0
-SERVER_LASTID=0
+PASS_LASTSERVER=0
+LAST_SERVERID=0
 SERVER_ID=0
 NAME=shadowsocksr
 ENABLE_SERVER=nil
@@ -34,6 +34,11 @@ __writelog(){
 	[ -s $2 ] || echo "#############ssr-switch log start:#############" > $2
 	sed -i "1i$1" $2 
 }
+
+__get_allservers(){ 
+	echo $1
+}
+
 DEFAULT_SERVER=$(__uci_get_by_type $NAME global_server)
 DEFAULT_SERVER_ALIAS=$(__uci_get_by_name $DEFAULT_SERVER alias)
 CURRENT_SERVER=$DEFAULT_SERVER
@@ -51,6 +56,7 @@ __check_network() {
 		#/usr/bin/ssr-check www.baidu.com 80 $check_timeout 1
 		if [ "$?" == "0" ]; then
 			#echo "server error" 
+			[ "$skip_defaultcheck" = "1" ] && __writelog "[`eval $TIME_STR`]: current server is not worked." $LOGFILE && return 1
 			let cknw_times+=1
 			__writelog "[`eval $TIME_STR`]: current server is DOWN,check times: $cknw_times." $LOGFILE
 			[ $cknw_times -ge 4 ] && return 1
@@ -87,7 +93,7 @@ __search_work_server() {
 	[ $ENABLE_SERVER != nil ] && __writelog "[`eval $TIME_STR`]: already selected,pass" $LOGFILE && return 0
 	[ "$1" = "$CURRENT_SERVER" ] && __writelog "[`eval $TIME_STR`]: current server,pass" $LOGFILE && return 0
 	[ "$1" = "$DEFAULT_SERVER" ] && __writelog "[`eval $TIME_STR`]: default server,pass" $LOGFILE && return 0
-	[ "$PASS_SWITCHED" = "1" ] && [ "$SERVER_ID" -le "$SERVER_LASTID" ] && __writelog "[`eval $TIME_STR`]: already be searched,pass" $LOGFILE && return 0
+	[ "$PASS_LASTSERVER" = "1" ] && [ "$SERVER_ID" -le "$LAST_SERVERID" ] && __writelog "[`eval $TIME_STR`]: already be searched,pass" $LOGFILE && return 0
 	[ "$(__uci_get_by_name $1 switch_enable)" != "1"  ]  && __writelog "[`eval $TIME_STR`]:  server don't support switched,pass" $LOGFILE && return 1		
 	local servername=$(__uci_get_by_name $1 server)
 	local serverport=$(__uci_get_by_name $1 server_port)
@@ -96,7 +102,7 @@ __search_work_server() {
 	#/usr/bin/ssr-check $servername $serverport $check_timeout
 	local ret2=$?
 	if [ "$ret2" = "0" ] ;then
-		SERVER_LASTID=$SERVER_ID
+		LAST_SERVERID=$SERVER_ID
 		ENABLE_SERVER=$1
 		__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $1 alias) is OK!!===========>be selected!" $LOGFILE
 		return 0
@@ -113,7 +119,33 @@ __select_servers() {
 	mkdir -p /var/run /var/etc
 	SERVER_ID=0
 	__writelog "[`eval $TIME_STR`]: search in servers......" $LOGFILE
-	config_foreach __search_work_server servers
+	#config_foreach __search_work_server servers
+
+	servers=$(config_foreach __get_allservers servers)
+	for i in $servers; do
+		let SERVER_ID=SERVER_ID+1
+		__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $i alias) is ok?" $LOGFILE
+		#IF CURRENT SERVER IS NOT DEFAULT SERVER,SKIP PREVIOUSE SERVER
+		#[ $ENABLE_SERVER != nil ] && __writelog "[`eval $TIME_STR`]: already selected,pass" $LOGFILE #&& return 0
+		[ "$i" = "$CURRENT_SERVER" ] && __writelog "[`eval $TIME_STR`]: current server,pass" $LOGFILE && continue
+		[ "$i" = "$DEFAULT_SERVER" ] && __writelog "[`eval $TIME_STR`]: default server,pass" $LOGFILE && continue
+		[ "$PASS_LASTSERVER" = "1" ] && [ "$SERVER_ID" -le "$LAST_SERVERID" ] && __writelog "[`eval $TIME_STR`]: already be searched,pass" $LOGFILE && continue #跳过之前切换过的服务器
+		[ "$(__uci_get_by_name $i switch_enable)" != "1"  ]  && __writelog "[`eval $TIME_STR`]:  server don't support switched,pass" $LOGFILE && continue		
+		local servername=$(__uci_get_by_name $i server)
+		local serverport=$(__uci_get_by_name $i server_port)
+		/usr/bin/nc -z -w $check_timeout $servername $serverport
+		#/usr/bin/curl -m $check_timeout -o /dev/null -s $servername:$serverport
+		#/usr/bin/ssr-check $servername $serverport $check_timeout
+		local ret2=$?
+		if [ "$ret2" = "0" ] ;then
+			LAST_SERVERID=$SERVER_ID
+			ENABLE_SERVER=$i
+			__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $i alias) is OK!!===============RETURN" $LOGFILE
+			break
+		else
+			__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $i alias) is NOT worked,pass" $LOGFILE
+		fi
+	done
 }
 
 __switch_to_server() {
@@ -130,28 +162,30 @@ start() {
 	local freeze_times=0
 	local ck_times=0
 	local skip_netcheck=0
-	sleep 10
+	local skip_defaultcheck=0
+	sleep 5
 	while [ "1" = "1" ]  #loop
 	do
-		correct_time=$(($delay_time-$(date +%s)%60)) #start loop at xx:00
-		sleep $correct_time
+		# correct_time=$(($delay_time-$(date +%s)%60)) #start loop at xx:00
+		# sleep $correct_time
 		skip_netcheck=0
 		#before=`date +%s`
 		#sleep $delay_time
 		LOGTIME=$(date "+%Y-%m-%d %H:%M:%S")
-		__writelog "[`eval $TIME_STR`]: #CHECK BEGIN -- [$(__uci_get_by_name $CURRENT_SERVER alias)]#"  $LOGFILE
+		[ "$skip_defaultcheck" = "0" ] && __writelog "[`eval $TIME_STR`]: #CHECK BEGIN -- [$(__uci_get_by_name $CURRENT_SERVER alias)]#"  $LOGFILE
 		#__writelog "[`eval $TIME_STR`]: check server every $delay_time seconds."  $LOGFILE
 		#check if current server is default server
-		if [ "$CURRENT_SERVER" != "$DEFAULT_SERVER" ] ;then #1、当前服务器不是默认服务器，则检查默认服务器是否正常；2、当前服务器为空，则跳过
-			if [ "$CURRENT_SERVER" != nil ] ; then #当前服务器不为空
-  				__writelog "[`eval $TIME_STR`]: check if the default server [$DEFAULT_SERVER_ALIAS] is up?" $LOGFILE
+		if [ "$skip_defaultcheck" = "0" ]; then
+			if [ "$CURRENT_SERVER" != "$DEFAULT_SERVER" ] ;then #1、当前服务器不是默认服务器，则检查默认服务器是否正常；2、当前服务器为空，则跳过
+				if [ "$CURRENT_SERVER" != nil ] ; then #当前服务器不为空
+  					__writelog "[`eval $TIME_STR`]: check if the default server [$DEFAULT_SERVER_ALIAS] is up?" $LOGFILE
 					if __check_default_server $DEFAULT_SERVER ;then
 						let ck_times+=1
 						__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP,check times:$ck_times." $LOGFILE
 						if [ $ck_times -ge 5 ]; then
 							ck_times=0
 							CURRENT_SERVER=$DEFAULT_SERVER
-							PASS_SWITCHED=0
+							PASS_LASTSERVER=0
 							__switch_to_default_server $CURRENT_SERVER 
 							__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP ,switch to default." $LOGFILE
 							logger -t "$NAME" "switch to default server [$DEFAULT_SERVER_ALIAS]!"
@@ -160,55 +194,62 @@ start() {
 					else
 						ck_times=0
 					fi
-			fi
-		fi
-  
-	if [ "$skip_netcheck" = "0" ]; then
-		__writelog "[`eval $TIME_STR`]: check if the network is ok?" $LOGFILE
-		cknw_times=0
-		__check_network
-		current_ret=$?
-		if [ "$current_ret" = "1" ] ;then
-			[ "$CURRENT_SERVER" != nil ] && __writelog "[`eval $TIME_STR`]: current server [$(__uci_get_by_name $CURRENT_SERVER alias)] is DOWN." $LOGFILE
-			if [ $ck_times -gt 0 ]; then #当前服务器掉线，且不是默认服务器，同时默认服务器已经通过基础检测，则，切换到默认服务器。
-				__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP $ck_times times,switch to default...continue" $LOGFILE
-				$ck_times=0
-				__switch_to_default_server $DEFAULT_SERVER
-				continue
-			fi
-		 	__select_servers #select server in the servers list and add it to $ENABLE_SERVER
-			if [ "$ENABLE_SERVER" != nil ] ;then
-				freeze_times=0
-				__writelog "[`eval $TIME_STR`]: find new server [$(__uci_get_by_name $ENABLE_SERVER alias)]." $LOGFILE
-				CURRENT_SERVER=$ENABLE_SERVER
-				__switch_to_server $CURRENT_SERVER
-				__writelog "[`eval $TIME_STR`]: switch to [$(__uci_get_by_name $CURRENT_SERVER alias)]." $LOGFILE
-				PASS_SWITCHED=1
-				logger -t "$NAME" "switch proxy [$(__uci_get_by_name $CURRENT_SERVER alias)] success!"
-			else
-				__writelog "[`eval $TIME_STR`]: all servers are DOWN,freeze ssr." $LOGFILE
-				let freeze_times+=1
-				__writelog "[`eval $TIME_STR`]: all servers are DOWN,freeze_times=$freeze_times." $LOGFILE
-				#[ `pidof ssr-redir` ] && /etc/init.d/ssrpro stop freeze
-				PASS_SWITCHED=0 
-				if [ $freeze_times -ge 3 ]; then
-					CURRENT_SERVER=nil
-					freeze_times=0
 				fi
 			fi
-		else
-			PASS_SWITCHED=0
-			[ "$current_ret" = "2" ] && __writelog "[`eval $TIME_STR`]: network error." $LOGFILE
-			[ "$current_ret" = "0" ] && __writelog "[`eval $TIME_STR`]: everything looks ok." $LOGFILE
+  		fi
+
+		if [ "$skip_netcheck" = "0" ]; then
+			[ "$skip_defaultcheck" = "0" ] && __writelog "[`eval $TIME_STR`]: check if the network is ok?" $LOGFILE
+			skip_defaultcheck=0
+			cknw_times=0
+			__check_network
+			current_ret=$?
+			if [ "$current_ret" = "1" ] ;then
+				[ "$CURRENT_SERVER" != nil ] && __writelog "[`eval $TIME_STR`]: current server [$(__uci_get_by_name $CURRENT_SERVER alias)] is DOWN." $LOGFILE
+				if [ $ck_times -gt 0 ]; then
+					__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP $ck_times times,switch to default...continue" $LOGFILE
+					$ck_times=0
+					__switch_to_default_server $DEFAULT_SERVER
+					continue
+				fi
+			 	__select_servers #select server in the servers list and add it to $ENABLE_SERVER
+				if [ "$ENABLE_SERVER" != nil ] ;then
+					freeze_times=0
+					__writelog "[`eval $TIME_STR`]: find new server [$(__uci_get_by_name $ENABLE_SERVER alias)]." $LOGFILE
+					CURRENT_SERVER=$ENABLE_SERVER
+					__switch_to_server $CURRENT_SERVER
+					__writelog "[`eval $TIME_STR`]: switch to [$(__uci_get_by_name $CURRENT_SERVER alias)]." $LOGFILE
+					PASS_LASTSERVER=1
+					#####需要马上check_network ！！！！！！！！新增
+					skip_defaultcheck=1
+					__writelog "[`eval $TIME_STR`]: check [$(__uci_get_by_name $CURRENT_SERVER alias)] right now" $LOGFILE
+					continue
+				else
+					__writelog "[`eval $TIME_STR`]: all servers are DOWN,freeze ssr." $LOGFILE
+					let freeze_times+=1
+					__writelog "[`eval $TIME_STR`]: all servers are DOWN,freeze_times=$freeze_times." $LOGFILE
+					#[ `pidof ssr-redir` ] && /etc/init.d/ssrpro stop freeze
+					PASS_LASTSERVER=0 
+					if [ $freeze_times -ge 3 ]; then
+						CURRENT_SERVER=nil
+						freeze_times=0
+					fi
+				fi
+			else
+				PASS_LASTSERVER=0
+				[ "$current_ret" = "2" ] && __writelog "[`eval $TIME_STR`]: network error." $LOGFILE
+				[ "$current_ret" = "0" ] && __writelog "[`eval $TIME_STR`]: everything looks ok." $LOGFILE
+			fi
 		fi
-	fi
-	# after=`date +%s`
-	# DELAY1=`echo "$delay_time $after $before"|awk '{printf("%g",$1-($2-$3))}'`
-	# DELAY=$((delay_time-(after-before)))
-	# #DELAY2=$((delay_time-(after-before)-after%60))
-	# #DELAY=$((DELAY-after%60))
-	# echo DELAY=$DELAY >> $LOGFILE
-	# echo DELAY1=$DELAY1 >> $LOGFILE
-	# sleep $DELAY
+		# after=`date +%s`
+		# DELAY1=`echo "$delay_time $after $before"|awk '{printf("%g",$1-($2-$3))}'`
+		# DELAY=$((delay_time-(after-before)))
+		# #DELAY2=$((delay_time-(after-before)-after%60))
+		# #DELAY=$((DELAY-after%60))
+		# echo DELAY=$DELAY >> $LOGFILE
+		# echo DELAY1=$DELAY1 >> $LOGFILE
+		# sleep $DELAY
+		correct_time=$(($delay_time-$(date +%s)%60)) #start loop at xx:00
+		sleep $correct_time
 	done
 }
