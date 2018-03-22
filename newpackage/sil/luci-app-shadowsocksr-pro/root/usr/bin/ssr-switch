@@ -104,16 +104,16 @@ __search_work_server() {
 	if [ "$ret2" = "0" ] ;then
 		LAST_SERVERID=$SERVER_ID
 		ENABLE_SERVER=$1
-		__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $1 alias) is OK!!===========>be selected!" $LOGFILE
+		__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $1 alias) is ok===========>be selected!" $LOGFILE
 		return 0
 	else
-		__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $1 alias) is NOT worked,pass" $LOGFILE
+		__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $1 alias) is not worked,pass" $LOGFILE
 		return 1
 	fi
 }
 
 __select_servers() {
-	[ `pidof ssr-redir` ] && /etc/init.d/ssrpro stop freeze #在白名单模式下，不能通过代理来判断其他服务器状态。需先关闭ssr
+	#[ `pidof ssr-redir` ] && /etc/init.d/ssrpro stop freeze #在白名单模式下，不能通过代理来判断其他服务器状态。需先关闭ssr
 	config_load $NAME
 	ENABLE_SERVER=nil
 	mkdir -p /var/run /var/etc
@@ -141,21 +141,21 @@ __select_servers() {
 		if [ "$ret2" = "0" ] ;then
 			LAST_SERVERID=$SERVER_ID
 			ENABLE_SERVER=$server
-			__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $server alias) is OK!!=>>>>>>>>return" $LOGFILE
+			__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $server alias) is ok=>>>>>>>>return!" $LOGFILE
 			break
 		else
-			__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $server alias) is NOT worked,pass" $LOGFILE
+			__writelog "[`eval $TIME_STR`]: $(__uci_get_by_name $server alias) is not worked,pass" $LOGFILE
 		fi
 	done
 }
 
 __switch_to_server() {
-	/etc/init.d/ssrpro start $1
+	/etc/init.d/ssrpro restart switch $1
 	return 0
 }
 
 __switch_to_default_server() {
-	/etc/init.d/ssrpro restart $1
+	/etc/init.d/ssrpro restart switch $1
 	return 0
 }
 
@@ -165,7 +165,7 @@ start() {
 	local skip_netcheck=0
 	local skip_defaultcheck=1
 	sleep 5
-	__writelog "[`eval $TIME_STR`]: #SSR-SWITCH START!#"  $LOGFILE
+	__writelog "[`eval $TIME_STR`]: #ssr-deamon start!#"  $LOGFILE
 	while [ "1" = "1" ]  #loop
 	do
 		# correct_time=$(($delay_time-$(date +%s)%60)) #start loop at xx:00
@@ -174,7 +174,7 @@ start() {
 		#before=`date +%s`
 		#sleep $delay_time
 		LOGTIME=$(date "+%Y-%m-%d %H:%M:%S")
-		__writelog "[`eval $TIME_STR`]: #CHECK BEGIN -- SERVER=[$(__uci_get_by_name $CURRENT_SERVER alias)]#"  $LOGFILE
+		__writelog "[`eval $TIME_STR`]: #check begin -- server=[$(__uci_get_by_name $CURRENT_SERVER alias)]#"  $LOGFILE
 		#__writelog "[`eval $TIME_STR`]: check server every $delay_time seconds. "  $LOGFILE
 		#check if current server is default server
 		if [ "$skip_defaultcheck" = "0" ]; then
@@ -208,7 +208,7 @@ start() {
 			current_ret=$?
 			skip_defaultcheck=0
 			if [ "$current_ret" = "1" ] ;then
-				[ "$CURRENT_SERVER" != nil ] && __writelog "[`eval $TIME_STR`]: current server [$(__uci_get_by_name $CURRENT_SERVER alias)] is DOWN." $LOGFILE
+				[ "$CURRENT_SERVER" != nil ] && __writelog "[`eval $TIME_STR`]: current server [$(__uci_get_by_name $CURRENT_SERVER alias)] is down." $LOGFILE
 				if [ $ck_times -gt 0 ]; then
 					__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP $ck_times times,switch to default...continue" $LOGFILE
 					$ck_times=0
