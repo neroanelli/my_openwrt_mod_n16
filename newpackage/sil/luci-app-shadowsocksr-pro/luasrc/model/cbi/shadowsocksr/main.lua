@@ -38,6 +38,10 @@ else
 	currentserver_name = server_table[currentserver]
 end
 
+if (currentserver_name == nil) then
+	currentserver_name = "empty"
+end
+
 s = m:section(TypedSection, "shadowsocksr")
 s.anonymous = true
 s.description = translate(string.format("%s<br /><br />", Status))

@@ -146,9 +146,9 @@ add_default_route()
 	for ifc in $wan_list;
 	do
 	#ifc=$1
-###############
+#########################################
 ### add default route with weight
-###############
+#########################################
 
 		make_wan_list $ifc
 
@@ -221,15 +221,15 @@ do
 	[ "$log_record" = "5" ]&&echo $ifc list device=$device gateway=$gateway proto=$proto dns=$dns ipaddr=$ipaddr  >> $logpath
 	echo "0" > /proc/sys/net/ipv4/conf/${device}/rp_filter    
 
-###############
+#########################################
 ### set_rtTables
-###############
+#########################################
 
 	set_rtTables $ifc 
 
-###############
+#########################################
 ### add ip to rule
-###############
+#########################################
 
 	ip_ru_del_0 
 	
@@ -242,9 +242,9 @@ do
 	[ "$log_record" = "5" ]&&echo add ip to rule: $RUN  >> $logpath
 	eval $RUN
 
-###############
+#########################################
 ### add DNS to rule 
-###############
+#########################################
 
 	ip_ru_del_0 
 	for WAN_DNS in $dns;
@@ -256,9 +256,9 @@ do
 	        fi
 	    done
 
-###############
+#########################################
 ### add mark to rule 
-###############
+#########################################
 
 	ip_ru_del_0
 
@@ -266,9 +266,9 @@ do
 	[ "$log_record" = "5" ]&&echo  add mark to rule : $RUN >> $logpath
 	eval $RUN
 
-###############
+#########################################
 ### add ip route to table
-###############
+#########################################
 		for i in $allwan_list;
 		do
 			if [ $i = $ifc ]; then
@@ -308,9 +308,9 @@ do
 			fi
 		done
 
-###############
+#########################################
 ### add default route to table
-###############
+#########################################
 
 	ip route del table ${ifc}_rt default 
 	ip route del table ${ifc}_rt default 
@@ -321,9 +321,9 @@ do
 	[ "$proto" = "pppoe" ]||[ "$proto" = "vpn" ]&&ip route add default via $ipaddr dev $device table ${ifc}_rt
 	#[ "$proto" = "pptp" ]&&ip route add default dev $device table ${ifc}_rt
 
-###############
+#########################################
 #echo Set PREROUTING...
-###############
+#########################################
 	if [ ! "$proto" = "vpn" ]; 
 		then
 			#所有wan进入的包(NEW)都标记为 mark,走Wan 策略路由
@@ -351,9 +351,9 @@ do
 
 done
 
-###############
+#########################################
 ### add iptable rules
-###############
+#########################################
 
 #所有LAN进入并且已经建立连接的包,恢复MARK
 

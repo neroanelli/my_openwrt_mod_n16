@@ -44,19 +44,27 @@ DEFAULT_SERVER_ALIAS=$(__uci_get_by_name $DEFAULT_SERVER alias)
 CURRENT_SERVER=$DEFAULT_SERVER
 #CURRENT_SERVE=$(cat /tmp/shadowsocksr/currentserver)
 
+__change_default_server() {  
+    uci set $NAME.@$NAME[0].global_server="$1"
+    uci commit ${NAME}
+    return 0
+}
+
 __check_network() {
 	#/usr/bin/nc -z -w $check_timeout www.google.com 80
 	/usr/bin/curl -m $check_timeout -o /dev/null -s www.google.com:80
 	#/usr/bin/ssr-check www.google.com 80 $check_timeout 1
 	if [ "$?" == "0" ]; then
+		[ $dftsrv_dtimes -ge 1 ] && [ $network_uptimes -le 100 ] && let network_uptimes+=1
 		return 0
   	else
+  		network_uptimes=0
 		#/usr/bin/nc -z -w $check_timeout www.baidu.com 80
 		/usr/bin/curl -m $check_timeout -o /dev/null -s www.baidu.com:80
 		#/usr/bin/ssr-check www.baidu.com 80 $check_timeout 1
 		if [ "$?" == "0" ]; then
 			#echo "server error" 
-			[ "$skip_defaultcheck" = "1" ] && __writelog "[`eval $TIME_STR`]: current server doesn't work." $LOGFILE && return 1
+			[ "$check_net_now" = "1" ] && __writelog "[`eval $TIME_STR`]: current server doesn't work." $LOGFILE && return 1
 			let cknw_times+=1
 			__writelog "[`eval $TIME_STR`]: current server is DOWN,check times: $cknw_times." $LOGFILE
 			[ $cknw_times -ge 4 ] && return 1
@@ -154,16 +162,13 @@ __switch_to_server() {
 	return 0
 }
 
-__switch_to_default_server() {
-	/etc/init.d/ssrpro restart switch $1
-	return 0
-}
-
 start() {
 	local freeze_times=0
-	local ck_times=0
+	local dftsrv_uptimes=0
+	local dftsrv_dtimes=0
+	local network_uptimes=0
 	local skip_netcheck=0
-	local skip_defaultcheck=1
+	local check_net_now=1
 	sleep 5
 	__writelog "[`eval $TIME_STR`]: #ssr-deamon start!#"  $LOGFILE
 	while [ "1" = "1" ]  #loop
@@ -171,48 +176,53 @@ start() {
 		# correct_time=$(($delay_time-$(date +%s)%60)) #start loop at xx:00
 		# sleep $correct_time
 		skip_netcheck=0
+		DEFAULT_SERVER_ALIAS=$(__uci_get_by_name $DEFAULT_SERVER alias)
 		#before=`date +%s`
 		#sleep $delay_time
 		LOGTIME=$(date "+%Y-%m-%d %H:%M:%S")
 		__writelog "[`eval $TIME_STR`]: #check begin -- server=[$(__uci_get_by_name $CURRENT_SERVER alias)]#"  $LOGFILE
-		#__writelog "[`eval $TIME_STR`]: check server every $delay_time seconds. "  $LOGFILE
 		#check if current server is default server
-		if [ "$skip_defaultcheck" = "0" ]; then
-			if [ "$CURRENT_SERVER" != "$DEFAULT_SERVER" ] ;then #1、当前服务器不是默认服务器，则检查默认服务器是否正常；2、当前服务器为空，则跳过
-				if [ "$CURRENT_SERVER" != nil ] ; then #当前服务器不为空
-  					__writelog "[`eval $TIME_STR`]: check if the default server [$DEFAULT_SERVER_ALIAS] is up?" $LOGFILE
-					if __check_default_server $DEFAULT_SERVER ;then
-						let ck_times+=1
-						__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP,check times:$ck_times." $LOGFILE
-						if [ $ck_times -ge 5 ]; then
-							ck_times=0
-							CURRENT_SERVER=$DEFAULT_SERVER
-							PASS_LASTSERVER=0
-							__switch_to_default_server $CURRENT_SERVER 
-							__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP ,switch to default." $LOGFILE
-							logger -t "$NAME" "switch to default server [$DEFAULT_SERVER_ALIAS]!"
-							#skip_netcheck=1
-							skip_defaultcheck=1
-						fi
-					else
-						ck_times=0
-					fi
+		if [ "$check_net_now" = "0" ] && [ "$CURRENT_SERVER" != "$DEFAULT_SERVER" ] && [ "$CURRENT_SERVER" != nil ]; then #1、当前服务器不是默认服务器，则检查默认服务器是否正常；2、当前服务器为空，则跳过
+			__writelog "[`eval $TIME_STR`]: check if the default server [$DEFAULT_SERVER_ALIAS] is up?" $LOGFILE
+			if __check_default_server $DEFAULT_SERVER ;then
+				let dftsrv_uptimes+=1
+				__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP,check times:$dftsrv_uptimes." $LOGFILE
+				if [ $dftsrv_uptimes -ge 5 ]; then
+					dftsrv_uptimes=0
+					network_uptimes=0
+					CURRENT_SERVER=$DEFAULT_SERVER
+					PASS_LASTSERVER=0
+					__switch_to_server $CURRENT_SERVER 
+					__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP ,switch to default." $LOGFILE
+					logger -t "$NAME" "switch to default server [$DEFAULT_SERVER_ALIAS]!"
+					#skip_netcheck=1
+					check_net_now=1
+				fi
+			else #默认服务器掉线次数超过阈值同时当前服务器上线次数达到阈值，切换当前服务器为默认服务器。
+				dftsrv_uptimes=0
+				[ $dftsrv_dtimes -le 100 ] && let dftsrv_dtimes+=1
+				if [ $dftsrv_dtimes -ge 5 ] && [ $network_uptimes -ge 10 ]; then
+					dftsrv_dtimes=0
+					DEFAULT_SERVER=$CURRENT_SERVER
+					__change_default_server $DEFAULT_SERVER 
+					__writelog "[`eval $TIME_STR`]: default server $DEFAULT_SERVER_ALIAS has changed to [$(__uci_get_by_name $CURRENT_SERVER alias)]." $LOGFILE
 				fi
 			fi
   		fi
+
 
 		if [ "$skip_netcheck" = "0" ]; then
 			__writelog "[`eval $TIME_STR`]: check if the network is ok?" $LOGFILE
 			cknw_times=0
 			__check_network
 			current_ret=$?
-			skip_defaultcheck=0
+			check_net_now=0
 			if [ "$current_ret" = "1" ] ;then
 				[ "$CURRENT_SERVER" != nil ] && __writelog "[`eval $TIME_STR`]: current server [$(__uci_get_by_name $CURRENT_SERVER alias)] is down." $LOGFILE
-				if [ $ck_times -gt 0 ]; then
-					__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP $ck_times times,switch to default...continue" $LOGFILE
-					$ck_times=0
-					__switch_to_default_server $DEFAULT_SERVER
+				if [ $dftsrv_uptimes -gt 0 ]; then
+					__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP $dftsrv_uptimes times,switch to default...continue" $LOGFILE
+					$dftsrv_uptimes=0
+					__switch_to_server $DEFAULT_SERVER
 					continue
 				fi
 			 	__select_servers #select server in the servers list and add it to $ENABLE_SERVER
@@ -224,7 +234,7 @@ start() {
 					__writelog "[`eval $TIME_STR`]: switched to [$(__uci_get_by_name $CURRENT_SERVER alias)]." $LOGFILE
 					PASS_LASTSERVER=1
 					#####需要马上check_network ！！！！！！！！新增
-					skip_defaultcheck=1
+					check_net_now=1
 					__writelog "[`eval $TIME_STR`]: check [$(__uci_get_by_name $CURRENT_SERVER alias)] right now" $LOGFILE
 					continue
 				else

@@ -82,6 +82,11 @@ if (string.len(currentserver)) == 0 then
 else
 	currentserver_name = server_table[currentserver]
 end
+
+if (currentserver_name == nil) then
+	currentserver_name = "empty"
+end
+
 a = m:section( SimpleSection )
 a.template = "shadowsocksr/server_status"
 
