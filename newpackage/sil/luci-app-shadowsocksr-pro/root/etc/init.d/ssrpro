@@ -402,7 +402,6 @@ __del_rule() {
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 start() {
 	[ `pidof ssr-redir` ] && return 1
-	[ "$global_server" = "nil" ] && return 1
 	newserver=$1
 	__get_args
 	if ! test -f "$CURRENTSERVER"; then
@@ -467,12 +466,10 @@ EOF
 	# -----------------------------------------------------------------
 	###### switch server ######
 	if [ $cfg_enable_switch = "1" ] ;then
-		if [ $vt_switch_enable = "1" ] ;then
-			if [ -z $newserver ] ;then
-				[ `pidof ssr-switch` ] && killall -q -9 ssr-switch
-				service_start /usr/bin/ssr-switch start $cfg_delay_time $cfg_check_timeout
-				gb_switch_enable=1
-			fi
+		if [ -z $newserver ] ;then
+			[ `pidof ssr-switch` ] && killall -q -9 ssr-switch
+			service_start /usr/bin/ssr-switch start $cfg_delay_time $cfg_check_timeout
+			gb_switch_enable=1
 		fi
 	fi
 # cron jobs
@@ -537,7 +534,7 @@ restart() {
 		*)
 			#newserver=$1
 			KEEP_GFWLIST=Y
-			sleep 3
+			sleep 1
 			stop no_reset_dns
 			start $1
 	esac
@@ -555,7 +552,6 @@ reload() {
 }
 
 switch() {
-	[ "$global_server" = "nil" ] && return 1
 	#kill ssr-redir
 	if [ -f $SS_REDIR_PIDFILE ]; then
 		kill -9 `cat $SS_REDIR_PIDFILE` 2>/dev/null

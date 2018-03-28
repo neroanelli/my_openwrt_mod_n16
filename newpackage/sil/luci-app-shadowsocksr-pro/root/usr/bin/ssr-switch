@@ -159,6 +159,8 @@ __select_servers() {
 
 __switch_to_server() {
 	/etc/init.d/ssrpro restart switch $1
+	__writelog "[`eval $TIME_STR`]: check [$(__uci_get_by_name $CURRENT_SERVER alias)] right now" $LOGFILE
+	sleep 1
 	return 0
 }
 
@@ -192,8 +194,8 @@ start() {
 					network_uptimes=0
 					CURRENT_SERVER=$DEFAULT_SERVER
 					PASS_LASTSERVER=0
-					__switch_to_server $CURRENT_SERVER 
 					__writelog "[`eval $TIME_STR`]: default server [$DEFAULT_SERVER_ALIAS] is UP ,switch to default." $LOGFILE
+					__switch_to_server $CURRENT_SERVER 
 					logger -t "$NAME" "switch to default server [$DEFAULT_SERVER_ALIAS]!"
 					#skip_netcheck=1
 					check_net_now=1
@@ -233,9 +235,7 @@ start() {
 					__switch_to_server $CURRENT_SERVER
 					__writelog "[`eval $TIME_STR`]: switched to [$(__uci_get_by_name $CURRENT_SERVER alias)]." $LOGFILE
 					PASS_LASTSERVER=1
-					#####需要马上check_network ！！！！！！！！新增
 					check_net_now=1
-					__writelog "[`eval $TIME_STR`]: check [$(__uci_get_by_name $CURRENT_SERVER alias)] right now" $LOGFILE
 					continue
 				else
 					__writelog "[`eval $TIME_STR`]: all servers are DOWN,freeze ssr." $LOGFILE
