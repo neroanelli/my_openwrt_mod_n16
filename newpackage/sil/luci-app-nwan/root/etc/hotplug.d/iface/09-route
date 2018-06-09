@@ -9,12 +9,10 @@ uci_get() {
 }
 
 uci_set_state() {
-	
 	uci -P /var/state set "$1" 2>/dev/null
 }
 
-uci_get_state() {
-	
+uci_get_state() {	
 	uci -P /var/state get "$1" 2>/dev/null
 }
 load_nwan() {
@@ -25,7 +23,7 @@ load_nwan() {
 	config_get name $1 name 
 	[ "$name" = "$iface" ] && [ "$enable" = "1" ] && pass=1
 }
-get_wan_info (){
+get_wan_info() {
 	#WAN_INTERFACE=$(echo ${INTERFACE} |grep -c -E "wan|vpn") #接口名字必须为wan或者vpn，否则无法自动更新路由
 	#WAN_INTERFACE=$(echo ${INTERFACE} |grep -c wan)
 	pass=0
@@ -42,6 +40,8 @@ get_wan_info (){
 	#new_gateway=${new_gateway:-$(ifstatus ${INTERFACE} |awk '/"nexthop"/{print $2}'|cut -d \" -f 2)}
 }
 
+enabled=$(uci_get_state nwan.@settings[0].enable)
+[ "$enabled" = 1 ] || exit 0
 logger -t nwan "nwan works!"
 case "$ACTION" in
 	ifup)
