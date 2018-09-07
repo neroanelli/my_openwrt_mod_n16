@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 
 uci -q batch <<-EOF >/dev/null
 	delete ucitrack.@nwan[-1]
@@ -6,9 +6,18 @@ uci -q batch <<-EOF >/dev/null
 	set ucitrack.@nwan[-1].init=nwan
 	delete ucitrack.@nwannumset[-1]
 	add ucitrack nwannumset
-	set ucitrack.@nwannumset[-1].init=nwannumset     
-	add_list ucitrack.@nwan[-1].affects=cron 
+	set ucitrack.@nwannumset[-1].init=nwannumset
+	add_list ucitrack.@nwan[-1].affects=cron
 	commit ucitrack
+EOF
+
+uci -q batch <<-EOF >/dev/null
+    delete firewall.nwan
+    set firewall.nwan=include
+    set firewall.nwan.type=script
+    set firewall.nwan.path=/var/etc/nwan.include
+    set firewall.nwan.reload=1
+    commit firewall
 EOF
 
 /etc/init.d/nwan enable

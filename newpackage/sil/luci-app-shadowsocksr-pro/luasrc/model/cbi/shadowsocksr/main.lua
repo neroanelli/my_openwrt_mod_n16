@@ -83,21 +83,22 @@ check_timeout:depends("enable_switch", "1")
 check_timeout.default = 3
 
 proxy_mode = s:taboption("basic",ListValue, "proxy_mode", translate("Proxy Mode"))
-proxy_mode:value("M", translate("Base on GFW-List Auto Proxy Mode(Recommend)"))
-proxy_mode:value("S", translate("Bypassing China Manland IP Mode(Be caution when using P2P download！)"))
-proxy_mode:value("G", translate("Global Mode"))
-proxy_mode:value("V", translate("Overseas users watch China video website Mode"))
+proxy_mode:value("gfw", translate("Base on GFW-List Auto Proxy Mode(Recommend)"))
+proxy_mode:value("chn", translate("Bypassing China Manland IP Mode(Be caution when using P2P download！)"))
+proxy_mode:value("global", translate("Global Mode"))
+proxy_mode:value("disable", translate("Disable Mode"))
+-- proxy_mode:value("V", translate("Overseas users watch China video website Mode"))
 
 cronup = s:taboption("basic", Flag, "gfw_cron_mode", translate("Auto Update GFW-List"),
 	translate(string.format("GFW-List Lines： <strong><font color=\"blue\">%s</font></strong> Lines", gfw_count)))
 cronup.default = "1"
-cronup:depends("proxy_mode", "M")
+-- cronup:depends("proxy_mode", "gfw")
 cronup.rmempty = false
 
 updatead = s:taboption("basic", Button, "updatead", translate("Manually force update GFW-List"), translate("Note: It needs to download and convert the rules. The background process may takes 60-120 seconds to run. <br / > After completed it would automatically refresh, please do not duplicate click!"))
 updatead.inputtitle = translate("Manually update GFW-List")
 updatead.inputstyle = "apply"
-updatead:depends("proxy_mode", "M")
+-- updatead:depends("proxy_mode", "gfw")
 updatead.write = function()
 	SYS.call("nohup sh /etc/shadowsocksr/up-gfwlist.sh > /tmp/shadowsocksr/gfwupdate.log 2>&1 &")
 end
@@ -105,13 +106,13 @@ end
 cn_cronup = s:taboption("basic", Flag, "cn_cron_mode", translate("Auto Update China IP"),
 	translate(string.format("China IP Data Lines： <strong><font color=\"blue\">%s</font></strong> Lines", ip_count)))
 cn_cronup.default = "1"
-cn_cronup:depends("proxy_mode", "S")
+-- cn_cronup:depends("proxy_mode", "chn")
 cn_cronup.rmempty = false
 
 updateip = s:taboption("basic", Button, "updateip", translate("Manually force update China IP Data"), translate("Note: It needs to download and convert the rules. The background process may takes 60-120 seconds to run. <br / > After completed it would automatically refresh, please do not duplicate click!"))
 updateip.inputtitle = translate("Manually update China IP Data")
 updateip.inputstyle = "apply"
-updateip:depends("proxy_mode", "S")
+-- updateip:depends("proxy_mode", "chn")
 updateip.write = function()
 	SYS.call("nohup sh /etc/shadowsocksr/up-chinaip.sh > /tmp/shadowsocksr/china-ip-update.log 2>&1 &")
 end
@@ -179,18 +180,19 @@ end
 
 -- [[ Status and Tools ]]--
 s:tab("status",  translate("Status and Tools"))
-s:taboption("status", DummyValue,"opennewwindow" , 
+s:taboption("status", DummyValue,"opennewwindow" ,
 translate("<input type=\"button\" class=\"cbi-button cbi-button-apply\" value=\"IP111.CN\" onclick=\"window.open('http://www.ip111.cn/')\" />"))
 
-ckbaidu = s:taboption("status", DummyValue, "baidu", translate("Baidu Connectivity")) 
-ckbaidu.value = translate("Not Checked") 
+
+ckbaidu = s:taboption("status", DummyValue, "baidu", translate("Baidu Connectivity"))
+ckbaidu.value = translate("Not Checked")
 ckbaidu.template = "shadowsocksr/check"
 
 ckgoogle = s:taboption("status", DummyValue, "google", translate("Google Connectivity"))
-ckgoogle.value = translate("Not Checked") 
+ckgoogle.value = translate("Not Checked")
 ckgoogle.template = "shadowsocksr/check"
 
-update_gfw=s:taboption("status", DummyValue, "gfw_data", translate("GFW List Data")) 
+update_gfw=s:taboption("status", DummyValue, "gfw_data", translate("GFW List Data"))
 update_gfw.template = "shadowsocksr/refresh"
 update_gfw.value =gfw_count .. " " .. translate("Records")
 -- ckgoogle = s:taboption("status", Button, "google", translate("Google Connectivity"))
@@ -226,13 +228,16 @@ end
 
 
 t=m:section(TypedSection,"acl_rule",translate("<strong>Client Proxy Mode Settings</strong>"),
-translate("Proxy mode settings can be set to specific LAN clients ( <font color=blue> No Proxy, Global Proxy, Game Mode</font>) . Does not need to be set by default."))
+translate("Proxy mode settings can be set to specific LAN clients ( <font color=blue> Bypassing China Mode, GFW-List Mode, Global Mode, Disable Mode</font>) . Does not need to be set by default."))
 t.template="cbi/tblsection"
 t.sortable=true
 t.anonymous=true
 t.addremove=true
+e=t:option(Value,"remarks",translate("Client Remarks"))
+e.width="30%"
+e.rmempty=true
 e=t:option(Value,"ipaddr",translate("IP Address"))
-e.width="40%"
+e.width="30%"
 e.datatype="ip4addr"
 e.placeholder="0.0.0.0/0"
 luci.ip.neighbors({ family = 4 }, function(entry)
@@ -245,9 +250,11 @@ e=t:option(ListValue,"filter_mode",translate("Proxy Mode"))
 e.width="40%"
 e.default="disable"
 e.rmempty=false
-e:value("disable",translate("No Proxy"))
-e:value("global",translate("Global Proxy"))
-e:value("game",translate("Game Mode"))
+e:value("disable",translate("Disable Mode"))
+e:value("chn",translate("Bypassing China Mode"))
+e:value("gfw",translate("GFW-List Mode"))
+e:value("global",translate("Global Mode"))
+-- e:value("game",translate("Game Mode"))
 
 -- ---------------------------------------------------
 local apply = luci.http.formvalue("cbi.apply")

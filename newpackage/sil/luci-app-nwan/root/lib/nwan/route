@@ -3,29 +3,33 @@
 
 #echo $$ > /tmp/nwan/nwanroute_new.pid
 #kill -9 `cat /tmp/nwan/nwanroute_old.pid`
-#cp /tmp/nwan/nwanroute_new.pid /tmp/nwan/nwanroute_old.pid 
+#cp /tmp/nwan/nwanroute_new.pid /tmp/nwan/nwanroute_old.pid
 newpidfile=/tmp/nwan/nwanroute_new.pid
 oldpidfile=/tmp/nwan/nwanroute_old.pid
 logpath=/tmp/nwan_log
+logger -t nwan "route start"
 
 echo $$ > $newpidfile
 if [ -e $oldpidfile ]; then
 	pid=`cat $oldpidfile`
 	cp $newpidfile $oldpidfile
-	while true; do
-		if kill -0 1> /dev/null 2>&1 $pid; then
-			echo "Nwan is running" >> $logpath
+	while true;
+	do
+		#if kill -0 1> /dev/null 2>&1 $pid; then
+		if kill -0 $pid 2>/dev/null; then
+			logger -t nwan "Nwan is running,wait..."
+			#echo "Nwan is running"
 			sleep 3
 		else
 			break
 		fi
 	done
+else
+	cp $newpidfile $oldpidfile
 fi
 
 
-
 . /lib/functions.sh
-
 
 uci_get() {
 	uci -P /var/state get "$1" 2>/dev/null
@@ -39,66 +43,77 @@ uci_get_state () {
 	uci -P /var/state get "$1" 2>/dev/null
 }
 
+__printargs() {
+  if [ -z "$NO_TIMESTAMP" ] || [ "$NO_TIMESTAMP" = "0" ]; then
+	printf -- "%s" "[$(date)] "
+  fi
+  if [ -z "$2" ]; then
+	printf -- "%s" "$1"
+  else
+	printf -- "%s" "$1='$2'"
+  fi
+  printf "\n"
+}
+
+log() { echo "[$(date)] $@"; }
+
+__log() {
+  [ -z "$logpath" ] && return
+  log "$@"
+  log "$@" >>"$logpath"
+}
+
 kill_nwan_ping() {
 	local otherpids
 	local execute
 	otherpids=$(ps -a 2>&1 | grep 'nwan-ping' | grep -v $$ | awk -F " " '{print $1}')
 	echo "$otherpids" | while read execute
 	do
-		kill -9 ${execute} 
+		kill -9 ${execute}
 	done
 }
 
 kill_nwan_ping  > /dev/null  2>&1
 
 ip_ru_del_0() {
-	ip ru|awk '/^0:/'|grep -v local|cut  -d ":" -f2 | while read del_ru 
-	do 
-		ip ru del $del_ru 
+	ip ru|awk '/^0:/'|grep -v local|cut  -d ":" -f2 | while read del_ru
+	do
+		ip ru del $del_ru
 	done
 }
 
 ip_ru_flush() {
-	ip rule |grep -v "vpn\|local" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule # delete all the specified ip rules
-	do 
+	ip rule |grep -v "vpn\|local\|100\|main\|default" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule # delete all the specified ip rules
+	do
 		$del_rule
 	done
 }
 make_wan_list() {
 	local interface=$1
-	device=$(uci_get nwan.${interface}.device) 
-	gateway=$(uci_get nwan.${interface}.gateway) 
-	proto=$(uci_get network.${interface}.proto) 
-	# local ifname=$(uci_get network.${interface}.ifname) 
-	dns=$(uci_get network.${interface}.dns) 
-	ipaddr=$(uci_get nwan.${interface}.ipaddr) 
-	weight=$(uci_get nwan.${interface}.weight) 
-	name=$(uci_get nwan.${interface}.name) 
-	route=$(uci_get nwan.${interface}.route) 
+	device=$(uci_get nwan.${interface}.device)
+	gateway=$(uci_get nwan.${interface}.gateway)
+	proto=$(uci_get network.${interface}.proto)
+	# local ifname=$(uci_get network.${interface}.ifname)
+	dns=$(uci_get network.${interface}.dns)
+	ipaddr=$(uci_get nwan.${interface}.ipaddr)
+	weight=$(uci_get nwan.${interface}.weight)
+	name=$(uci_get nwan.${interface}.name)
+	route=$(uci_get nwan.${interface}.route)
 	if [ -n "$interface" ]; then
 		num=`echo $interface | tr -d "wan"`
 	fi
-	if [ -z $num ] ; then num=0; fi  
-	mark=$((($num+1)*10))  
+	if [ -z $num ] ; then num=0; fi
+	mark=$((($num+1)*10))
 	if [ "$proto" = "pptp" ]||[ "$proto" = "l2tp" ]||[ "$proto" = "xl2tp" ]||[ "$proto" = "openl2tp" ]; then proto="vpn"; fi
-	
+
 	if [ "$proto" = "vpn" ]; then mark=8; fi  # by neroanelli
 	[ -z "$weight" ]&& weight=1
 	[ -z "$route" ]&& route=balance
 }
 
-
 set_rtTables () {
-#
-# reserved values
-#
-#	echo 255 local > /etc/iproute2/rt_tables
-#	echo 254 main >> /etc/iproute2/rt_tables
-#	echo 253 default >> /etc/iproute2/rt_tables
-#	echo 0 unspec >> /etc/iproute2/rt_tables
 	local n
 	local RT
-	
 	n=200
 	RT=${1}_rt
 	if [ -z "`cat /etc/iproute2/rt_tables | grep $RT`" ] ; then
@@ -106,31 +121,27 @@ set_rtTables () {
 		do
 			n=`expr $n + 1`
 		done
-		echo "$n $RT" >> /etc/iproute2/rt_tables 
+		echo "$n $RT" >> /etc/iproute2/rt_tables
 	#	log_debug 5 "set_rt_Tables:$n $RT"
 		n=`expr $n + 1`
 	fi
 	prio=$n
-	#eval ${1}_RT_TABLE=$RT
-	# log_debug 5 "set_rt_Tables:${1}_RT_TABLE=$RT.....OK"
 }
 
 add_routes() {
 	ip_ru_del_0
 	ip_ru_del_0
 	ip_ru_del_0
-
-
 	NETLIST=/lib/nwan/${name}.rsc
 	if [ -f $NETLIST ]; then
-        MY_LINE_NO=1
-        while read MY_LINE
-        do
-        #local RUN="iptables -t mangle -A PREROUTING -d $MY_LINE -j MARK --set-mark $mark" 
-		#[ "$log_record" = "5" ]&&echo add iptables:$RUN >> $logpath
+		MY_LINE_NO=1
+		while read MY_LINE
+		do
+		#local RUN="iptables -t mangle -A PREROUTING -d $MY_LINE -j MARK --set-mark $mark"
+		#[ "$log_record" = "5" ] && __log add iptables:$RU
 		local RUN="ip rule add to $MY_LINE table ${ifc}_rt"
-		[ "$log_record" = "5" ]&&echo add ip ru:$RUN >> $logpath
-		eval $RUN  
+		[ "$log_record" = "5" ]&&__log add ip ru:$RUN
+		eval $RUN
 		MY_LINE_NO=$((MY_LINE_NO+1))
 		done < $NETLIST
 	fi
@@ -138,10 +149,10 @@ add_routes() {
 
 add_default_route()
 {
-	echo "add default route to table" >> $logpath
-	default_route=$NULL 
-	wan_list=$(uci -P /var/state/ show nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
-	[ "$log_record" = "5" ]&&echo wan list : $wan_list >> $logpath
+	__log "add default route to table"
+	default_route=$NULL
+	wan_list=$(uci -P /var/state/ show nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1)
+	[ "$log_record" = "5" ]&&__log wan list: $wan_list
 	###Commented by neroanelli
 	for ifc in $wan_list;
 	do
@@ -151,7 +162,7 @@ add_default_route()
 #########################################
 
 		make_wan_list $ifc
-
+		[ "$log_record" = "5" ]&&__log $ifc $proto $route $device $weight
 		if [ ! "$proto" = "vpn" ]; then
 			if [ ! "$proto" = "pppoe" ]; then
 				parameter=$gateway
@@ -161,109 +172,93 @@ add_default_route()
 			[ "$route" = "balance" ]&&default_route=`echo $default_route nexthop via $parameter dev $device weight $weight`
 
 			[ "$route" = "intelligent_routes" ]&&add_routes
+			[ "$log_record" = "5" ]&&__log default_route: $default_route
 			total_route=`echo ip route change default scope global $default_route`
-			[ "$log_record" = "5" ]&&echo total default route : $total_route  >> $logpath
-			# ip route del default 
-			# ip route del default 
-			# ip route del default 
-			# ip route del default 
-			# ip route del default 
-			ip route | grep default | while read DEFAULTROUTE 
-         	do
-         		ip route del $DEFAULTROUTE 
-         	done 
-			ip route add default via $parameter dev $device			
+			[ "$log_record" = "5" ]&&__log total default route: $total_route
+			# ip route del default
+			ip route | grep default | while read DEFAULTROUTE
+			do
+				ip route del $DEFAULTROUTE
+			done
+			ip route add default via $parameter dev $device
 		fi
 	done
-	eval $total_route 
-}
 
+	eval $total_route
+}
 
 main_int()
 {
 kill_nwan_ping  > /dev/null  2>&1
 kill_nwan_ping  > /dev/null  2>&1
-
 ###Commented by neroanelli---nwam start
-if [ -z $1]; 
+if [ -z $1];
 	then
-		#ip rule flush 
-		#ip rule flush 
-		#ip rule flush 
+		#ip rule flush
+		#ip rule flush
+		#ip rule flush
 		ip_ru_flush
 		ip_ru_flush
 		ip_ru_flush
 		ip ru ls
-		ip rule del table main 
-		ip rule del table default 
-		ip rule add lookup main prio 32766 
+		ip rule del table main
+		ip rule del table default
+		ip rule add lookup main prio 32766
 		ip rule add lookup default prio 32767
-		wan_list=$(uci -P /var/state/ show nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
+		wan_list=$(uci -P /var/state/ show nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1)
 		allwan_list=$wan_list
 	else
 		wan_list=$1  #nwan ifup_start
-		allwan_list=$(uci -P /var/state/ show nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1) 
+		allwan_list=$(uci -P /var/state/ show nwan |grep gateway= |cut -d"." -f2 | cut -d"." -f1)
 fi
-	
-[ "$log_record" = "5" ]&&echo wan list : $wan_list >> $logpath
 
-default_route=$NULL 
-
+[ "$log_record" = "5" ] && __log wan list: $wan_list
+default_route=$NULL
 ip_ru_del_0
 
-
 ###Commented by neroanelli
-for ifc in $wan_list; 
+for ifc in $wan_list;
 do
-
-	[ "$log_record" = "5" ]&&echo now srart $ifc setting +++++  >> $logpath
+	[ "$log_record" = "5" ] && __log now start $ifc setting +++++
 	make_wan_list $ifc
-	[ "$log_record" = "5" ]&&echo $ifc list device=$device gateway=$gateway proto=$proto dns=$dns ipaddr=$ipaddr  >> $logpath
-	echo "0" > /proc/sys/net/ipv4/conf/${device}/rp_filter    
+	[ "$log_record" = "5" ] && __log $ifc list device=$device gateway=$gateway proto=$proto dns=$dns ipaddr=$ipaddr
+	echo "0" > /proc/sys/net/ipv4/conf/${device}/rp_filter
 
 #########################################
 ### set_rtTables
 #########################################
 
-	set_rtTables $ifc 
+	set_rtTables $ifc
 
 #########################################
 ### add ip to rule
 #########################################
-
-	ip_ru_del_0 
-	
-	ip rule | grep -w "${ifc}_rt" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule 
+	ip_ru_del_0
+	ip rule | grep -w "${ifc}_rt" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule
 	do
 		$del_rule
 	done
-
 	local RUN="ip rule add from $ipaddr table ${ifc}_rt"
-	[ "$log_record" = "5" ]&&echo add ip to rule: $RUN  >> $logpath
+	[ "$log_record" = "5" ] && __log add ip to rule: $RUN
 	eval $RUN
-
 #########################################
-### add DNS to rule 
+### add DNS to rule
 #########################################
-
-	ip_ru_del_0 
+	ip_ru_del_0
 	for WAN_DNS in $dns;
 		do
 			if [ ! "$WAN_DNS" = "0.0.0.0" ]; then
 				local RUN="ip rule add to $WAN_DNS table ${ifc}_rt"
-	            [ "$log_record" = "5" ]&&echo add DNS to rule : $RUN  >> $logpath
-	            eval $RUN 
-	        fi
-	    done
-
+				[ "$log_record" = "5" ] && __log add DNS to rule: $RUN
+				eval $RUN
+			fi
+		done
 #########################################
-### add mark to rule 
+### add mark to rule
 #########################################
-
 	ip_ru_del_0
-
 	local RUN="ip rule add fwmark $mark table ${ifc}_rt"
-	[ "$log_record" = "5" ]&&echo  add mark to rule : $RUN >> $logpath
+	[ "$log_record" = "5" ] && __log  add mark to rule: $RUN
 	eval $RUN
 
 #########################################
@@ -272,36 +267,37 @@ do
 		for i in $allwan_list;
 		do
 			if [ $i = $ifc ]; then
+
 				if [ ! "$proto" = "vpn" ]; then
 					ip route flush table ${ifc}_rt
-					ip route | grep -v -E "nexthop|default" | while read ROUTE 
-					do 
+					ip route | grep -v -E "nexthop|default" | while read ROUTE
+					do
 						#if [ ! "$ROUTE" = "default" ]; then
 						local RUN="ip route append table ${ifc}_rt to $ROUTE"
-						[ "$log_record" = "5" ]&&echo add ip route to table: $RUN  >> $logpath
-						eval $RUN 
+						[ "$log_record" = "5" ] && __log add ip route to table: $RUN
+						eval $RUN
 						#fi
 					done
 				else
 					ip route flush table ${ifc}_rt
-					local RUN=`ip route | grep br-`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
+					local RUN=`ip route | grep br-`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1
 					local NET=$(echo $RUN | cut -d " " -f1)
 					local DEV=$(echo $RUN | cut -d " " -f3)
 					ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
-		
+
 					#########important!!!! only work on this machine.只是在DE2700上使用，因为使用了内网的网关。
-					#local RUN=`ip route | grep 10.24.0.2`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1 
+					#local RUN=`ip route | grep 10.24.0.2`  # 10.24.0.0/24 dev br-lan  proto kernel  scope link  src 10.24.0.1
 					#local NET=$(echo $RUN | cut -d " " -f1)
 					#local DEV=$(echo $RUN | cut -d " " -f3)
 					#ip route replace $NET dev $DEV table ${ifc}_rt # ip route replace 10.24.0.0/24 dev br-lan table GFWVPN_rt
 				fi
 			else
-				iproto=$(uci_get network.${i}.proto) 
+				iproto=$(uci_get network.${i}.proto)
 				if [ ! "$iproto" = "vpn" ]; then
 					ip route | grep -v -E "nexthop|default" | grep -w ${ifc} | while read ROUTE
 					do
 						local RUN="ip route append table ${i}_rt to $ROUTE"
-						[ "$log_record" = "5" ]&&echo add ip route to table: $RUN  >> $logpath
+						[ "$log_record" = "5" ] && __log add ip route to table: $RUN
 						eval $RUN
 					done
 				fi
@@ -312,10 +308,10 @@ do
 ### add default route to table
 #########################################
 
-	ip route del table ${ifc}_rt default 
-	ip route del table ${ifc}_rt default 
-	ip route del table ${ifc}_rt default 
-	ip route del table ${ifc}_rt default 
+	ip route del table ${ifc}_rt default
+	ip route del table ${ifc}_rt default
+	ip route del table ${ifc}_rt default
+	ip route del table ${ifc}_rt default
 
 	[ ! "$proto" = "pppoe" ]&&[ ! "$proto" = "vpn" ]&&ip route add default via $gateway dev $device table ${ifc}_rt
 	[ "$proto" = "pppoe" ]||[ "$proto" = "vpn" ]&&ip route add default via $ipaddr dev $device table ${ifc}_rt
@@ -324,23 +320,22 @@ do
 #########################################
 #echo Set PREROUTING...
 #########################################
-	if [ ! "$proto" = "vpn" ]; 
-		then
+	if [ ! "$proto" = "vpn" ]; then
 			#所有wan进入的包(NEW)都标记为 mark,走Wan 策略路由
 			#local RUN="iptables -t mangle -A NWANPRE -i $device -m conntrack  --ctstate NEW  -j CONNMARK --set-mark $mark"
 			#if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep $device)" ]; then
 			if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep -w $device)" ]; then
 				local RUN="iptables -t mangle -A NWANPRE -i $device -m state --state NEW  -j CONNMARK --set-mark $mark"
-				[ "$log_record" = "5" ]&&echo  Set NWANPREROUTING...: $RUN >> $logpath
-				eval $RUN 
+				[ "$log_record" = "5" ] && __log  Set NWANPREROUTING...: $RUN
+				eval $RUN
 			fi
 			#echo Set POSTROUTING...
 			#所有WAN1出去的包
 			#local RUN="iptables -t mangle -A NWANPOS -o $device  -m conntrack  --ctstate NEW  -j CONNMARK --set-mark $mark"
 			if [ -z "$( iptables -t mangle -nxvL NWANPOS |grep -w $device)" ]; then
 				local RUN="iptables -t mangle -A NWANPOS -o $device  -m state --state NEW  -j CONNMARK --set-mark $mark"
-				[ "$log_record" = "5" ]&&echo  Set NWANPOSTROUTING...: $RUN >> $logpath
-				eval $RUN 
+				[ "$log_record" = "5" ] && __log  Set NWANPOSTROUTING...: $RUN
+				eval $RUN
 			fi
 		# else
 		# 	iptables -t mangle -D PREROUTING -m set ! --match-set whitelist dst -j MARK --set-mark 8
@@ -348,7 +343,6 @@ do
 		# 	iptables -t mangle -D OUTPUT -m set ! --match-set whitelist dst -j MARK --set-mark 8
 		# 	iptables -t mangle -A OUTPUT -m set ! --match-set whitelist dst -j MARK --set-mark 8
 	fi
-
 done
 
 #########################################
@@ -358,36 +352,38 @@ done
 #所有LAN进入并且已经建立连接的包,恢复MARK
 
 lan_ifname=$(uci_get network.lan.ifname)
+guest_ifname=$(uci_get network.guest.ifname)
 if [ -z "$( iptables -t mangle -nxvL NWANPRE |grep restore)" ]; then
 	local RUN="iptables -t mangle -I NWANPRE -i $lan_ifname -m conntrack --ctstate ESTABLISHED,RELATED -j CONNMARK --restore-mark"
-	[ "$log_record" = "5" ]&&echo 所有LAN进入并且已经建立连接的包,恢复MARK: $RUN  >> $logpath
+	[ "$log_record" = "5" ] && __log 所有LAN进入并且已经建立连接的包,恢复MARK: $RUN
 	eval $RUN
+	local RUN="iptables -t mangle -I NWANPRE -i $guest_ifname -m conntrack --ctstate ESTABLISHED,RELATED -j CONNMARK --restore-mark"
+	[ "$log_record" = "5" ] && __log 所有LAN进入并且已经建立连接的包,恢复MARK: $RUN
+	eval "$RUN 2>/dev/null"
 fi
 if [ -z "$( iptables -t mangle -nxvL NWANOUT |grep restore)" ]; then
 	local RUN="iptables -t mangle -I NWANOUT -m conntrack --ctstate ESTABLISHED,RELATED -j CONNMARK --restore-mark"
-	[ "$log_record" = "5" ]&&echo 所有LAN进入并且已经建立连接的包,output: $RUN  >> $logpath
+	[ "$log_record" = "5" ] && __log 所有LAN进入并且已经建立连接的包,output: $RUN
 	eval $RUN
 fi
-
-
 add_default_route
 }
 
 
 remove_wan() {
 
-	# INTERFACE = ${INTERFACE} wan_NO 
-	echo ---------------------------------- >> $logpath
-	echo -------------start---------------- >> $logpath
-	echo ---------------------------------- >> $logpath
-	
+	# INTERFACE = ${INTERFACE} wan_NO
+	__log ----------------------------------
+	__log -------------start----------------
+	__log ----------------------------------
+
 	local RUN="ip route flush table ${INTERFACE}_rt"
 	eval "$RUN> /dev/null"
 	ip rule | grep -w "${INTERFACE}_rt" | awk {'print "ip rule del " $2 " " $3 " " $4 " " $5 " "'}|while read del_rule # delete all the specified ip rules
-	do 
+	do
 		$del_rule
 	done
-	## del iptables 
+	## del iptables
 	#iptables -t mangle -A NWANPRE -i pppoe-wan -m state --state NEW -j CONNMARK --set-mark 10
 	ifc=$INTERFACE
 	make_wan_list $ifc
@@ -395,11 +391,11 @@ remove_wan() {
 		then
 		#mark=`printf "%x" $mark`
 		local RUN="iptables -t mangle -D NWANPRE -i $device -m state --state NEW -j CONNMARK --set-mark $mark"
-		[ "$log_record" = "5" ]&&echo  Remove iptables rules: $RUN >> $logpath
-		eval $RUN 
+		[ "$log_record" = "5" ] && __log Remove iptables rules: $RUN
+		eval $RUN
 		local RUN="iptables -t mangle -D NWANPOS -o $device -m state --state NEW -j CONNMARK --set-mark $mark"
-		[ "$log_record" = "5" ]&&echo  Remove iptables rules: $RUN >> $logpath
-		eval $RUN 
+		[ "$log_record" = "5" ] && __log Remove iptables rules: $RUN
+		eval $RUN
 		uci -P /var/state revert nwan.${INTERFACE}
 		uci -P /var/state revert network.${INTERFACE}.gateway
 		add_default_route
@@ -409,34 +405,28 @@ remove_wan() {
 		# iptables -t mangle -D OUTPUT -m set --match-set vpn dst -j MARK --set-mark $mark
 		# iptables -t mangle -D PREROUTING -m set --match-set vpn dst -j MARK --set-mark $mark
 	fi
-
 	ip route flush cache
-
-	echo ---------------------------------- >> $logpath
-	echo -------------end------------------ >> $logpath
-	echo ---------------------------------- >> $logpath
-	echo '##################################' >> $logpath
+	__log ----------------------------------
+	__log -------------end------------------
+	__log ----------------------------------
+	__log '##############xxxxx###############'
 	#add_default_route
 }
 
-
-
-
 route_start(){
-	echo ---------------------------------- >> $logpath
-	echo -------------start---------------- >> $logpath
-	echo ---------------------------------- >> $logpath
+	__log ----------------------------------
+	__log -------------start----------------
+	__log ----------------------------------
 	local WAN_LIST=$1
 	main_int $WAN_LIST
 	sh /lib/nwan/assingout
-	ip route flush cache  
-	ip route flush cache  
-	echo ---------------------------------- >> $logpath
-	echo -------------end------------------ >> $logpath
-	echo ---------------------------------- >> $logpath
-	echo '##################################' >> $logpath
+	ip route flush cache
+	ip route flush cache
+	__log ----------------------------------
+	__log -------------end------------------
+	__log ----------------------------------
+	__log '##################################'
 }
-
 
 nwan_setting_get(){
 
@@ -471,18 +461,17 @@ config_foreach nwan_setting_get settings
 
 case $1 in
 	start)
-		[ "$nwan_enable" = "1" ] && route_start 2>/dev/null 
+		[ "$nwan_enable" = "1" ] && route_start 2>/dev/null
 	;;
 	restart)
-		[ "$nwan_enable" = "1" ] && route_start 2>/dev/null 
-	;;		
+		[ "$nwan_enable" = "1" ] && route_start 2>/dev/null
+	;;
 	ifup_start)
- 		[ "$nwan_enable" = "1" ] && route_start $2 2>/dev/null
+		[ "$nwan_enable" = "1" ] && route_start $2 2>/dev/null
 	 ;;
 	ifdown_start)
 		[ "$nwan_enable" = "1" ] && remove_wan $2 2>/dev/null
 	;;
 esac
 
-[ "$nwan_enable" = "1" ] && [ "$ping_ck" = "1" ] && /lib/nwan/nwan-ping 2>/dev/null& 
-
+[ "$nwan_enable" = "1" ] && [ "$ping_ck" = "1" ] && /lib/nwan/nwan-ping 2>/dev/null&

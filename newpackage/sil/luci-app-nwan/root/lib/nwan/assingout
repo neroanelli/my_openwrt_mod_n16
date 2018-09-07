@@ -6,17 +6,17 @@ log_record=5
 
 add_ASSIGNOUT() {
 
-    if [ "$dst" == "all" ]; then
-      dst=$NULL
-    fi
-      echo "line 11 dst=$dst"
+		if [ "$dst" == "all" ]; then
+			dst=$NULL
+		fi
+			echo "line 11 dst=$dst"
 local RUN="iptables -t mangle -A ASSIGNOUT \
-                        ${proto:+-p $proto} \
-                        ${src:+-s $src} \
-                        ${dst:+-d $dst} \
-                        ${ports:+--dport $ports} \
-                      -j MARK --set-mark $wanrule"
-[ "$log_record" = "5" ]&&echo add iptables:$RUN 
+												${proto:+-p $proto} \
+												${src:+-s $src} \
+												${dst:+-d $dst} \
+												${ports:+--dport $ports} \
+											-j MARK --set-mark $wanrule"
+[ "$log_record" = "5" ]&&echo add iptables:$RUN
 eval $RUN
 
 
@@ -43,43 +43,43 @@ echo "rule start..."
 ports_first=${ports%-*} > /dev/null  2>&1
 ports_last=${ports#*-} > /dev/null  2>&1
 [ $enable ==  "1" ]&&{
-	
+
 wanstate=$(uci -P /var/state get nwan.${wanrule}.status)
-   if [ -z "$wanstate" ]; then
-         return
-   fi
-    
-    if [ -n "$wanrule" ]; then
-        num=`echo $wanrule | tr -d "wan"`
-        if [ -z $num ] ; then num=0; fi  
-        wanrule=$((($num+1)*10)) 
-    fi
+	 if [ -z "$wanstate" ]; then
+				 return
+	 fi
+
+		if [ -n "$wanrule" ]; then
+				num=`echo $wanrule | tr -d "wan"`
+				if [ -z $num ] ; then num=0; fi
+				wanrule=$((($num+1)*10))
+		fi
 
 
-   if [ "$src" == "all" ]; then
-          src=$NULL 
-    fi
+	 if [ "$src" == "all" ]; then
+					src=$NULL
+		fi
 
-    if [ "$ports" == "all" ]; then
-        ports=$NULL 
-    fi
+		if [ "$ports" == "all" ]; then
+				ports=$NULL
+		fi
 
-    if [ "$ports_first" -ne "$ports_last" ]; then
-        ports="$ports_first:$ports_last" 
-    fi
-  
-  [ "$proto" == "tcp_udp" -o "$proto" == "tcp" -o "$proto" == "udp" ] || ports=$NULL 
+		if [ "$ports_first" -ne "$ports_last" ]; then
+				ports="$ports_first:$ports_last"
+		fi
+
+	[ "$proto" == "tcp_udp" -o "$proto" == "tcp" -o "$proto" == "udp" ] || ports=$NULL
 
  if [ "$proto" == "tcp_udp" ]; then
-               proto=tcp
-               add_ASSIGNOUT 
-               proto=udp
-               add_ASSIGNOUT 
+							 proto=tcp
+							 add_ASSIGNOUT
+							 proto=udp
+							 add_ASSIGNOUT
  else
- 
- add_ASSIGNOUT 
+
+ add_ASSIGNOUT
  fi
-} 
+}
 }
 
 
@@ -87,10 +87,10 @@ wanstate=$(uci -P /var/state get nwan.${wanrule}.status)
 assingout_start()
 {
 
-iptables -t mangle -N ASSIGNOUT 
-iptables -t mangle -F ASSIGNOUT 
-[ -z "$(iptables -t mangle -nxvL PREROUTING |grep ASSIGNOUT)" ]&&iptables -t mangle -I PREROUTING -j ASSIGNOUT 
-iptables -A ASSIGNOUT -t mangle -m state --state ESTABLISHED,RELATED -j RETURN 
+iptables -t mangle -N ASSIGNOUT
+iptables -t mangle -F ASSIGNOUT
+[ -z "$(iptables -t mangle -nxvL PREROUTING |grep ASSIGNOUT)" ]&&iptables -t mangle -I PREROUTING -j ASSIGNOUT
+iptables -A ASSIGNOUT -t mangle -m state --state ESTABLISHED,RELATED -j RETURN
 
 }
 

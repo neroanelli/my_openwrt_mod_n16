@@ -2,17 +2,40 @@
 
 START=95
 
+nwan_enable=$(uci get nwan.@settings[0].enable 2>/dev/null)
+
+__export_ipt_rules() {
+	FWI=$(uci get firewall.nwan.path 2>/dev/null)
+	[ -n "$FWI" ] || return 0
+	cat <<-CAT >>$FWI
+	iptables-save -c | grep -v -E "ASSIGNOUT|NWANOUT|NWANPOS|NWANPRE" | iptables-restore -c
+	iptables-restore -n <<-EOF
+	$(iptables-save | grep -E "ASSIGNOUT|NWANOUT|NWANPOS|NWANPRE|^\*|^COMMIT")
+	EOF
+	CAT
+	return $?
+}
+
+__flush_ipt_rules() {
+	FWI=$(uci get firewall.nwan.path 2>/dev/null)
+	[ -n "$FWI" ] && echo '# firewall include file' >$FWI
+	return 0
+}
+
 boot () {
-	local pppoeupall=$(uci get nwan.@settings[0].pppoeupall) 
+	local pppoeupall=$(uci get nwan.@settings[0].pppoeupall)
 	[ "$pppoeupall" = "1" ] &&{
 	sleep 120;
-	sh /lib/nwan/pppoeup;   
+	sh /lib/nwan/pppoeup;
 }
 }
 
 start () {
-	mkdir -p /tmp/nwan/
-	sh /lib/nwan/route start 
+	if [ $nwan_enable -eq 1 ]; then
+		mkdir -p /tmp/nwan/
+		sh /lib/nwan/route start
+		__flush_ipt_rules && __export_ipt_rules
+	fi
 }
 
 stop () {
