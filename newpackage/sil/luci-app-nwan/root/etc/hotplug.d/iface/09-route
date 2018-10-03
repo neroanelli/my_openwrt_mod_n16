@@ -23,9 +23,9 @@ get_wan_info (){
 	if [ "${WAN_INTERFACE}" -ge "1" ] ; then
 
 		network_get_gateway gateway ${INTERFACE} true
-		[ -z $gateway ] && exit 0
+		#[ -z $gateway ] && exit 0
 		network_get_ipaddrs ipaddr ${INTERFACE}
-		[ -z $ipaddr ] && exit 0
+		#[ -z $ipaddr ] && exit 0
 		network_get_protocol proto ${INTERFACE}
 	fi
 }
@@ -39,6 +39,8 @@ case "$ACTION" in
 		echo ++ `date` +++${INTERFACE}+++${ACTION}++ >> $logpath
 		echo "`date`++${INTERFACE} is up ">>/tmp/nwandebug
 		get_wan_info
+		[ -z $gateway ] && exit 0
+		[ -z $ipaddr ] && exit 0
 		echo "interface is available = ${WAN_INTERFACE}" >>/tmp/nwandebug
 		if [ "${WAN_INTERFACE}" -ge "1" ] ; then
 			uci -P /var/state revert nwan.${INTERFACE}
